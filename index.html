@@ -2522,19 +2522,23 @@
   // ── LIVE STUDENT COUNT ON HOMEPAGE ────────────────────────
   // Listens to Firestore in real-time and updates the hero stat
   (function() {
-    db.collection('registrations').onSnapshot(snap => {
-      const count = snap.size;
-      const el = document.getElementById('statStudents');
-      if (el) {
-        el.textContent = count.toLocaleString();
-        // Also update the animated counter target for future scroll-ins
-        window._liveStudentCount = count;
-      }
-    }, err => {
-      console.error('Live count listener FAILED:', err);
-      const el = document.getElementById('statStudents');
-      if (el) el.textContent = 'Error';
-    });
+    try {
+      db.collection('registrations').onSnapshot(snap => {
+        const count = snap.size;
+        const el = document.getElementById('statStudents');
+        if (el) {
+          el.textContent = count.toLocaleString();
+          // Also update the animated counter target for future scroll-ins
+          window._liveStudentCount = count;
+        }
+      }, err => {
+        console.error('Live count listener FAILED:', err);
+        const el = document.getElementById('statStudents');
+        if (el) el.textContent = 'Error';
+      });
+    } catch (e) {
+      console.error('Firebase not initialized:', e);
+    }
   })();
 
   // Student data — loaded from Firestore
