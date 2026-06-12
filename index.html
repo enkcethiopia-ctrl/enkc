@@ -3093,8 +3093,8 @@
       if (entries[0].isIntersecting) {
         const nums = heroStats.querySelectorAll('.stat-number');
         const liveCount = window._liveStudentCount || 0;
-        const targets = [liveCount, 3000, 150, 600];
-        const suffixes = ['', '', '+', 'K'];
+        const targets = [liveCount, 3000, 600];
+        const suffixes = ['', '', 'K'];
         nums.forEach((el, i) => animateCount(el, targets[i], suffixes[i]));
         statsObserver.disconnect();
       }
