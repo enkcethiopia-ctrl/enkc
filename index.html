@@ -2825,18 +2825,25 @@
     if (tb) tb.textContent = p + ' pending';
   }
 
-  function syncTimerStatus() {
-    const active = localStorage.getItem('enkc_cd_active') === 'true';
-    const deadline = localStorage.getItem('enkc_cd_deadline');
+  async function syncTimerStatus() {
     const statusEl = document.getElementById('timerStatusText');
-    if (active && deadline) {
-      const d = new Date(deadline);
-      statusEl.style.color = '#2E7D32';
-      statusEl.textContent = 'Running — ends ' + d.toLocaleString();
-      document.getElementById('cdDeadlineInput').value = deadline.slice(0,16);
-    } else {
+    try {
+      const doc = await db.collection('settings').doc('countdown').get();
+      const data = doc.exists ? doc.data() : null;
+      if (data && data.active && data.deadline) {
+        const d = new Date(data.deadline);
+        statusEl.style.color = '#2E7D32';
+        statusEl.textContent = 'Running — ends ' + d.toLocaleString();
+        document.getElementById('cdDeadlineInput').value = data.deadline.slice(0,16);
+        if (data.label) document.getElementById('cdLabelInput').value = data.label;
+      } else {
+        statusEl.style.color = '#C41E3A';
+        statusEl.textContent = 'Stopped — showing "Coming Soon"';
+        if (data && data.label) document.getElementById('cdLabelInput').value = data.label;
+      }
+    } catch (err) {
       statusEl.style.color = '#C41E3A';
-      statusEl.textContent = 'Stopped — showing "Coming Soon"';
+      statusEl.textContent = 'Failed to load timer status: ' + err.message;
     }
   }
 
@@ -3185,18 +3192,9 @@
     }
   });
 
-  // ── Countdown Timer (Admin Controlled) ──
+  // ── Countdown Timer (Admin Controlled, synced via Firestore) ──
   (function() {
     let cdInterval = null;
-
-    // Load saved state from localStorage
-    const savedDeadline = localStorage.getItem('enkc_cd_deadline');
-    const savedLabel = localStorage.getItem('enkc_cd_label');
-    const timerActive = localStorage.getItem('enkc_cd_active') === 'true';
-
-    if (savedLabel) {
-      document.getElementById('cdLabel').textContent = savedLabel;
-    }
 
     function startCountdown(deadline) {
       if (cdInterval) clearInterval(cdInterval);
@@ -3233,32 +3231,53 @@
       document.getElementById('cdComingSoon').style.display = 'block';
     }
 
-    // Auto-resume if admin had previously set a deadline
-    if (timerActive && savedDeadline) {
-      startCountdown(new Date(savedDeadline));
+    function applyState(data) {
+      if (data && data.label) {
+        document.getElementById('cdLabel').textContent = data.label;
+      }
+      if (data && data.active && data.deadline) {
+        startCountdown(new Date(data.deadline));
+      } else {
+        stopCountdown();
+      }
     }
 
-    // Expose to global scope for admin panel
-    window.enkc_startCountdown = function(deadlineStr, label) {
-      const d = new Date(deadlineStr);
-      localStorage.setItem('enkc_cd_deadline', deadlineStr);
-      localStorage.setItem('enkc_cd_active', 'true');
-      if (label) {
-        localStorage.setItem('enkc_cd_label', label);
-        document.getElementById('cdLabel').textContent = label;
+    // Load initial state and listen for live updates from admin
+    db.collection('settings').doc('countdown').onSnapshot(doc => {
+      applyState(doc.exists ? doc.data() : null);
+    }, err => {
+      console.error('Countdown sync failed:', err);
+    });
+
+    // Expose to global scope for admin panel — writes shared state to Firestore
+    window.enkc_startCountdown = async function(deadlineStr, label) {
+      try {
+        await db.collection('settings').doc('countdown').set({
+          deadline: deadlineStr,
+          active: true,
+          label: label || '⏳ Registration Closes In'
+        }, { merge: true });
+      } catch (err) {
+        showToast('⚠️ Failed to update timer: ' + err.message, 'red');
       }
-      startCountdown(d);
     };
-    window.enkc_stopCountdown = function() {
-      localStorage.setItem('enkc_cd_active', 'false');
-      stopCountdown();
+    window.enkc_stopCountdown = async function() {
+      try {
+        await db.collection('settings').doc('countdown').set({ active: false }, { merge: true });
+      } catch (err) {
+        showToast('⚠️ Failed to update timer: ' + err.message, 'red');
+      }
     };
-    window.enkc_resetCountdown = function() {
-      localStorage.removeItem('enkc_cd_deadline');
-      localStorage.removeItem('enkc_cd_active');
-      localStorage.removeItem('enkc_cd_label');
-      document.getElementById('cdLabel').textContent = '⏳ Registration Opens Soon';
-      stopCountdown();
+    window.enkc_resetCountdown = async function() {
+      try {
+        await db.collection('settings').doc('countdown').set({
+          deadline: null,
+          active: false,
+          label: '⏳ Registration Opens Soon'
+        });
+      } catch (err) {
+        showToast('⚠️ Failed to update timer: ' + err.message, 'red');
+      }
     };
   })();
 
