@@ -2210,16 +2210,20 @@
         <p class="hero-desc" data-en="Test your knowledge in science, humanities, and critical thinking. Compete against thousands of students across Addis Ababa. Win cash prizes, laptops, and recognition." data-am="በሳይንስ፣ የሰብአዊነት ጥናት እና ወሳኝ አስተሳሰብ ላይ የእዉቀት ሙከራዎ ይውሰዱ። በአዲስ አበባ ዙሪያ ሺህ የሚሉ ተማሪዎች ጋር ውድድር ያደርጉ። ገንዘብ ሮሮች፣ ላፕቶፕ እና ቅድሚያ ይጠብቁ።" data-or="Beekumsa keeti qorataa saayinsii, tanaasummaa fi yaada jidha keessatti sakka'uu. Barattoonni kuma heddu wajjin Addis Ababa keessatti ilaalchaa. Maallaqa, kompiitara fi beekumsa biraa guutuu.">Test your knowledge in science, humanities, and critical thinking.</p>
         <div class="hero-stats">
           <div class="stat">
-            <div class="stat-number" data-en="1,245" data-am="1,245" data-or="1,245">1,245</div>
-            <div class="stat-label" data-en="Registered" data-am="ተመዝግበው" data-or="Barattoonni">Registered</div>
+            <div class="stat-number" id="statStudents" data-en="0" data-am="0" data-or="0">0</div>
+            <div class="stat-label" data-en="Students Registered" data-am="ተማሪዎች ተመዝግበዋል" data-or="Barattoonni Galmooftan">Students Registered</div>
           </div>
           <div class="stat">
-            <div class="stat-number" data-en="52" data-am="52" data-or="52">52</div>
-            <div class="stat-label" data-en="Schools" data-am="ት/ት ቤቶች" data-or="Barumsa">Schools</div>
+            <div class="stat-number" data-en="3,000" data-am="3,000" data-or="3,000">3,000</div>
+            <div class="stat-label" data-en="Students Targeted" data-am="ኢላማ ተማሪዎች" data-or="Kaayyoo Barattootaa">Students Targeted</div>
           </div>
           <div class="stat">
-            <div class="stat-number" data-en="600K" data-am="400K" data-or="400K">600K</div>
-            <div class="stat-label" data-en="Prizes" data-am="ሮሮች" data-or="Gaafii">Prizes</div>
+            <div class="stat-number" id="statSchools" data-en="150+" data-am="150+" data-or="150+">150+</div>
+            <div class="stat-label" data-en="Schools Targeted" data-am="ኢላማ ት/ት ቤቶች" data-or="Iskeelii Barbaadamu">Schools Targeted</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number" data-en="600K" data-am="600K" data-or="600K">600K</div>
+            <div class="stat-label" data-en="ETB in Prizes" data-am="ETB ሮሮች" data-or="ETB Gaaffii">ETB in Prizes</div>
           </div>
         </div>
       </div>
@@ -2364,7 +2368,7 @@
   <div class="prizes-bg" id="prizes">
     <div class="section">
       <p class="section-label reveal" style="color: rgba(252,221,9,0.7);" data-en="Prizes & Awards" data-am="ሮሮች እና ሽልማቶች" data-or="Gaaffii fi Galmee">Prizes & Awards</p>
-      <h2 class="section-title reveal" style="color: var(--white);" data-en="Up to 600,000 ETB in prizes" data-am="400,000 ETB ሮሮች በግምት" data-or="Gaaffii 400,000 ETB gama">Up to 400,000 ETB<br>in prizes</h2>
+      <h2 class="section-title reveal" style="color: var(--white);" data-en="Up to 600,000 ETB in prizes" data-am="እስከ 600,000 ETB ሮሮች" data-or="Gaaffii hanga 600,000 ETB">Up to 600,000 ETB<br>in prizes</h2>
 
       <div class="prizes-grid stagger">
         <div class="prize-card gold-card">
@@ -2519,6 +2523,22 @@
 <button class="admin-toggle-btn" onclick="toggleAdminLogin()" title="Admin Login" style="display: none;" id="adminBtn">👤</button>
 
 <script>
+  // ── LIVE STUDENT COUNT ON HOMEPAGE ────────────────────────
+  // Listens to Firestore in real-time and updates the hero stat
+  (function() {
+    db.collection('registrations').onSnapshot(snap => {
+      const count = snap.size;
+      const el = document.getElementById('statStudents');
+      if (el) {
+        el.textContent = count.toLocaleString();
+        // Also update the animated counter target for future scroll-ins
+        window._liveStudentCount = count;
+      }
+    }, err => {
+      console.warn('Live count listener failed:', err);
+    });
+  })();
+
   // Student data — loaded from Firestore
   let studentData = [];
 
@@ -3074,8 +3094,9 @@
     const statsObserver = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
         const nums = heroStats.querySelectorAll('.stat-number');
-        const targets = [1245, 52, 600];
-        const suffixes = ['', '', 'K'];
+        const liveCount = window._liveStudentCount || 0;
+        const targets = [liveCount, 3000, 150, 600];
+        const suffixes = ['', '', '+', 'K'];
         nums.forEach((el, i) => animateCount(el, targets[i], suffixes[i]));
         statsObserver.disconnect();
       }
