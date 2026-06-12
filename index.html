@@ -2218,10 +2218,6 @@
             <div class="stat-label" data-en="Students Targeted" data-am="ኢላማ ተማሪዎች" data-or="Kaayyoo Barattootaa">Students Targeted</div>
           </div>
           <div class="stat">
-            <div class="stat-number" id="statSchools" data-en="150+" data-am="150+" data-or="150+">150+</div>
-            <div class="stat-label" data-en="Schools Targeted" data-am="ኢላማ ት/ት ቤቶች" data-or="Iskeelii Barbaadamu">Schools Targeted</div>
-          </div>
-          <div class="stat">
             <div class="stat-number" data-en="600K" data-am="600K" data-or="600K">600K</div>
             <div class="stat-label" data-en="ETB in Prizes" data-am="ETB ሮሮች" data-or="ETB Gaaffii">ETB in Prizes</div>
           </div>
@@ -2535,7 +2531,9 @@
         window._liveStudentCount = count;
       }
     }, err => {
-      console.warn('Live count listener failed:', err);
+      console.error('Live count listener FAILED:', err);
+      const el = document.getElementById('statStudents');
+      if (el) el.textContent = 'Error';
     });
   })();
 
