@@ -3578,6 +3578,62 @@
 .msg-ai ul,.msg-ai ol { padding-left:20px; margin:6px 0; }
 .msg-ai li { margin-bottom:4px; }
 .msg-ai strong { color:#FFD700; }
+
+/* Quiz question text */
+.quiz-question-text {
+  font-size:15px; font-weight:600; color:#fff;
+  margin:10px 0 14px; line-height:1.5;
+}
+
+/* Quiz result bubble */
+.quiz-result-bubble { border-color:transparent !important; background:transparent !important; padding:0 !important; }
+.quiz-result-header {
+  padding:12px 16px; border-radius:10px; font-weight:700;
+  font-size:14px; margin-bottom:10px;
+}
+.result-correct {
+  background:rgba(76,175,80,0.15); border:1.5px solid rgba(76,175,80,0.4);
+  color:#81C784;
+}
+.result-wrong {
+  background:rgba(196,30,58,0.15); border:1.5px solid rgba(196,30,58,0.4);
+  color:#EF9A9A;
+}
+.quiz-result-explanation {
+  background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.2);
+  border-radius:10px; padding:12px 14px;
+  color:rgba(255,255,255,0.85); font-size:13px; line-height:1.7;
+  margin-bottom:10px;
+}
+.btn-next-question {
+  padding:9px 20px; background:linear-gradient(135deg,#D4AF37,#FFD700);
+  color:#111; border:none; border-radius:8px;
+  font-weight:700; font-size:13px; cursor:pointer;
+  transition:all 0.2s; font-family:'Inter',sans-serif;
+  letter-spacing:0.5px;
+}
+.btn-next-question:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(212,175,55,0.4); }
+.btn-next-question:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+/* Topic card (explain mode search result) */
+.topic-card {
+  background:rgba(255,255,255,0.04); border:1.5px solid rgba(212,175,55,0.25);
+  border-radius:12px; overflow:hidden; align-self:flex-start; max-width:90%;
+  animation:fadeInUp 0.25s ease;
+}
+.topic-card-header {
+  background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.08));
+  border-bottom:1px solid rgba(212,175,55,0.2);
+  padding:10px 16px; display:flex; align-items:center; gap:8px;
+}
+.topic-card-header .topic-label {
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:1px; color:#D4AF37;
+}
+.topic-card-body {
+  padding:14px 16px; font-size:14px; line-height:1.75;
+  color:rgba(255,255,255,0.88);
+}
 @media(max-width:600px){
   .study-header{padding:12px 16px;}
   .study-header h2{font-size:16px;}
@@ -3986,11 +4042,11 @@ async function callStudyAI(openingPrompt, isOpening, systemContext) {
     } else if (selectedMode === 'quiz') {
       const q = getNextQuiz(selectedSubject);
       if (q) {
-        responseText = `**Welcome to ${sub.name} Quiz Mode! 🧩**\n\nI'll ask you multiple-choice questions. Select your answer and I'll explain why it's correct or incorrect.\n\nLet's start!\n\n` + formatQuizQuestion(q);
-        document.getElementById(typingId)?.remove();
+        appendBubble('ai', `**Welcome to ${sub.name} Quiz Mode! 🧩**\n\nSelect the correct answer from the options below. I'll tell you if you're right and explain why!`);
+        await new Promise(r => setTimeout(r, 200));
         studyLoading = false;
         document.getElementById('btnSendStudy').disabled = false;
-        appendQuizBubbleBuiltIn(responseText, q);
+        appendQuizBubbleBuiltIn('Question 1', q);
         scrollStudyChat();
         return;
       }
@@ -4009,16 +4065,24 @@ async function callStudyAI(openingPrompt, isOpening, systemContext) {
       if (q) {
         studyLoading = false;
         document.getElementById('btnSendStudy').disabled = false;
-        appendQuizBubbleBuiltIn('**Next question! 🧩**\n\n' + formatQuizQuestion(q), q);
+        appendQuizBubbleBuiltIn('Next Question', q);
         scrollStudyChat();
         return;
       }
     }
 
-    // Try keyword matching
+    // Try keyword matching → show as topic card
     const matched = findKnowledgeResponse(userText, selectedSubject);
     if (matched) {
-      responseText = matched;
+      // Extract a short title from the first bold line e.g. **Quadratic Equations** → "Quadratic Equations"
+      const titleMatch = matched.match(/\*\*([^*\n]+)\*\*/);
+      const topicTitle = titleMatch ? titleMatch[1].replace(/[📐⚛️🧪🧬🏛️📖⚖️🌍📊💻∫〰️⚡🌡️🔧🔬🌿🦁]/g,'').trim() : 'Topic';
+      studyMessages.push({ role: 'assistant', content: matched });
+      appendTopicCard(topicTitle, matched);
+      studyLoading = false;
+      document.getElementById('btnSendStudy').disabled = false;
+      scrollStudyChat();
+      return;
     } else if (/next|another|more|continue/i.test(userText) && selectedMode === 'practice') {
       const probs = kb?.practice || [];
       const idx = Math.floor(Math.random() * probs.length);
@@ -4046,22 +4110,24 @@ async function callStudyAI(openingPrompt, isOpening, systemContext) {
   scrollStudyChat();
 }
 
-function appendQuizBubbleBuiltIn(introText, qObj) {
+// Store quiz data separately to avoid JSON-in-onclick issues
+const quizRegistry = {};
+let quizRegId = 0;
+
+function appendQuizBubbleBuiltIn(label, qObj) {
   const area = document.getElementById('studyChatArea');
   const div = document.createElement('div');
   div.className = 'msg-bubble msg-ai';
 
-  let html = '<span class="ai-label">🧩 Quiz Question</span>';
-  // Show intro text (bold question part)
-  const parts = introText.split('\n\n');
-  const questionPart = parts[0]; // "Next question! ..."
-  html += formatStudyText(questionPart) + '<br>';
-  // Show the question text (everything before options)
-  html += `<strong style="color:#FFD700">${escHtml(qObj.q)}</strong>`;
+  const rid = ++quizRegId;
+  quizRegistry[rid] = qObj;
+
+  let html = `<span class="ai-label">🧩 ${escHtml(label)}</span>`;
+  html += `<div class="quiz-question-text">${escHtml(qObj.q)}</div>`;
   html += '<div class="quiz-options">';
   qObj.opts.forEach((opt, i) => {
     const letter = ['A','B','C','D'][i];
-    html += `<button class="quiz-opt" data-letter="${letter}" onclick="handleBuiltInAnswer(this,'${letter}','${qObj.ans}',${JSON.stringify(qObj.exp).replace(/'/g,"\\'")})">${letter}) ${escHtml(opt)}</button>`;
+    html += `<button class="quiz-opt" data-letter="${letter}" data-rid="${rid}" onclick="handleBuiltInAnswer(this)">${letter}) ${escHtml(opt)}</button>`;
   });
   html += '</div>';
 
@@ -4070,19 +4136,46 @@ function appendQuizBubbleBuiltIn(introText, qObj) {
   scrollStudyChat();
 }
 
-function handleBuiltInAnswer(btn, chosen, correct, explanation) {
+function handleBuiltInAnswer(btn) {
+  const chosen = btn.dataset.letter;
+  const rid = btn.dataset.rid;
+  const qObj = quizRegistry[rid];
+  if (!qObj) return;
+
+  const correct = qObj.ans;
+  const explanation = qObj.exp;
+
+  // Disable all options and mark correct/wrong
   const parent = btn.closest('.quiz-options');
   const allBtns = parent.querySelectorAll('.quiz-opt');
-  allBtns.forEach(b => b.disabled = true);
+  allBtns.forEach(b => {
+    b.disabled = true;
+    if (b.dataset.letter === correct) b.classList.add('correct');
+  });
+  if (chosen !== correct) btn.classList.add('wrong');
 
-  if (chosen === correct) {
-    btn.classList.add('correct');
-    appendBubble('ai', `✅ **Correct! Well done!**\n\n${explanation}\n\nType "next question" for another quiz question, or ask me anything! 🌟`);
-  } else {
-    btn.classList.add('wrong');
-    allBtns.forEach(b => { if (b.dataset.letter === correct) b.classList.add('correct'); });
-    appendBubble('ai', `❌ **Not quite — the correct answer is ${correct}.**\n\n${explanation}\n\nDon't worry — learning from mistakes is how you improve! Type "next question" to continue. 💪`);
-  }
+  // Show result bubble
+  const area = document.getElementById('studyChatArea');
+  const resultDiv = document.createElement('div');
+  resultDiv.className = 'msg-bubble msg-ai quiz-result-bubble';
+  const isCorrect = chosen === correct;
+
+  resultDiv.innerHTML =
+    `<div class="quiz-result-header ${isCorrect ? 'result-correct' : 'result-wrong'}">` +
+      (isCorrect ? '✅ Correct! Well done!' : `❌ Wrong — correct answer: <strong>${correct}</strong>`) +
+    `</div>` +
+    `<div class="quiz-result-explanation">${formatStudyText(explanation)}</div>` +
+    `<button class="btn-next-question" onclick="loadNextQuizQuestion(this)">Next Question →</button>`;
+
+  area.appendChild(resultDiv);
+  scrollStudyChat();
+}
+
+function loadNextQuizQuestion(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+  const q = getNextQuiz(selectedSubject);
+  if (q) appendQuizBubbleBuiltIn('Next Question', q);
   scrollStudyChat();
 }
 
@@ -4095,6 +4188,19 @@ function appendBubble(role, text) {
   } else {
     div.textContent = text;
   }
+  area.appendChild(div);
+  scrollStudyChat();
+}
+
+function appendTopicCard(topicTitle, text) {
+  const area = document.getElementById('studyChatArea');
+  const div = document.createElement('div');
+  div.className = 'topic-card';
+  div.innerHTML =
+    `<div class="topic-card-header">` +
+      `<span>📖</span><span class="topic-label">${escHtml(topicTitle)}</span>` +
+    `</div>` +
+    `<div class="topic-card-body">${formatStudyText(text)}</div>`;
   area.appendChild(div);
   scrollStudyChat();
 }
