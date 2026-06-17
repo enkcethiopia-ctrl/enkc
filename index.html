@@ -3318,8 +3318,9 @@
   }
 </script>
 
+
 <!-- ══════════════════════════════════════════════
-     AI STUDY MODE MODAL
+     AI STUDY MODE MODAL  (Chapter-Based, MoE New Curriculum)
 ══════════════════════════════════════════════ -->
 <div class="study-overlay" id="studyOverlay">
   <div class="study-modal">
@@ -3330,7 +3331,7 @@
         <div class="study-header-icon">🧠</div>
         <div>
           <h2>AI Study Mode</h2>
-          <p>Powered by Claude AI • All Subjects • ENKC Prep</p>
+          <p id="studyHeaderSub">MoE New Curriculum · Grade 11 &amp; 12 · Chapter-by-Chapter</p>
         </div>
       </div>
       <button class="study-close" onclick="closeStudyMode()">✕</button>
@@ -3340,27 +3341,28 @@
     <div class="study-screen active" id="studyPickerScreen">
       <div class="study-picker">
         <h3>📚 Choose Your Subject</h3>
-        <p>Select a subject and study mode, then start your AI-powered session</p>
+        <p>Ethiopian Ministry of Education New Curriculum — Grades 11 &amp; 12</p>
+        <div class="subjects-grid" id="subjectsGrid"><!-- filled by JS --></div>
+      </div>
+    </div>
 
-        <div class="subjects-grid" id="subjectsGrid">
-          <!-- filled by JS -->
+    <!-- SCREEN 2: Chapter Picker -->
+    <div class="study-screen" id="studyChapterScreen">
+      <div class="study-picker">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+          <button class="btn-back-subjects" onclick="backToSubjects()" style="margin-left:0;">← Subjects</button>
+          <span class="study-subject-badge" id="chapterSubjectBadge"></span>
         </div>
+        <h3 id="chapterScreenTitle">📖 Choose a Chapter</h3>
+        <p id="chapterScreenSub">Select a chapter from the MoE new curriculum to study</p>
+        <div class="chapters-grid" id="chaptersGrid"><!-- filled by JS --></div>
 
-        <div class="study-mode-options">
+        <div class="study-mode-options" style="margin-top:22px;">
           <h3>🎯 How do you want to study?</h3>
           <div class="mode-btns" id="modeBtns">
-            <button class="mode-btn selected" data-mode="explain" onclick="selectMode(this)">
-              💡 Explain Topics
-            </button>
-            <button class="mode-btn" data-mode="quiz" onclick="selectMode(this)">
-              🧩 Quiz Me
-            </button>
-            <button class="mode-btn" data-mode="practice" onclick="selectMode(this)">
-              ✏️ Practice Problems
-            </button>
-            <button class="mode-btn" data-mode="summary" onclick="selectMode(this)">
-              📋 Quick Summary
-            </button>
+            <button class="mode-btn selected" data-mode="explain" onclick="selectMode(this)">💡 Explain</button>
+            <button class="mode-btn" data-mode="quiz" onclick="selectMode(this)">🧩 Quiz Me</button>
+            <button class="mode-btn" data-mode="summary" onclick="selectMode(this)">📋 Summary</button>
           </div>
         </div>
 
@@ -3370,24 +3372,21 @@
       </div>
     </div>
 
-    <!-- SCREEN 2: Chat / Study Session -->
+    <!-- SCREEN 3: Chat / Study Session -->
     <div class="study-screen" id="studyChatScreen">
       <div class="study-toolbar">
-        <span class="study-subject-badge" id="chatSubjectBadge">Mathematics</span>
-        <span class="study-mode-badge" id="chatModeBadge">Explain Topics</span>
-        <button class="btn-back-subjects" onclick="backToSubjects()">← Change Subject</button>
+        <span class="study-subject-badge" id="chatSubjectBadge"></span>
+        <span class="study-chapter-badge" id="chatChapterBadge"></span>
+        <span class="study-mode-badge" id="chatModeBadge"></span>
+        <button class="btn-back-subjects" onclick="backToChapters()">← Chapters</button>
       </div>
 
-      <div class="quick-prompts" id="quickPrompts">
-        <!-- filled by JS based on subject -->
-      </div>
+      <div class="quick-prompts" id="quickPrompts"></div>
 
-      <div class="study-chat-area" id="studyChatArea">
-        <!-- messages go here -->
-      </div>
+      <div class="study-chat-area" id="studyChatArea"></div>
 
       <div class="study-input-area">
-        <textarea class="study-input" id="studyInput" placeholder="Ask anything about your subject…" rows="1"
+        <textarea class="study-input" id="studyInput" placeholder="Ask about this chapter…" rows="1"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendStudyMessage();}"></textarea>
         <button class="btn-send-study" id="btnSendStudy" onclick="sendStudyMessage()">➤</button>
       </div>
@@ -3422,10 +3421,7 @@
   border-radius:10px; display:flex; align-items:center;
   justify-content:center; font-size:22px;
 }
-.study-header h2 {
-  font-family:'Playfair Display',serif; font-size:20px;
-  color:#FFD700; font-weight:700;
-}
+.study-header h2 { font-family:'Playfair Display',serif; font-size:20px; color:#FFD700; font-weight:700; }
 .study-header p { font-size:12px; color:rgba(255,255,255,0.4); margin-top:2px; }
 .study-close {
   width:36px;height:36px; background:rgba(255,255,255,0.08);
@@ -3439,9 +3435,10 @@
 .study-picker { padding:28px; overflow-y:auto; flex:1; }
 .study-picker h3 { font-family:'Playfair Display',serif; font-size:18px; color:#FFD700; margin-bottom:6px; }
 .study-picker p { font-size:13px; color:rgba(255,255,255,0.45); margin-bottom:22px; }
+
+/* Subjects grid */
 .subjects-grid {
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:12px; margin-bottom:28px;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:28px;
 }
 .subject-card {
   background:rgba(255,255,255,0.04); border:1.5px solid rgba(212,175,55,0.15);
@@ -3455,6 +3452,27 @@
 .subject-icon { font-size:30px; margin-bottom:9px; }
 .subject-name { font-size:13px; font-weight:700; color:white; margin-bottom:3px; }
 .subject-desc { font-size:11px; color:rgba(255,255,255,0.38); }
+
+/* Chapters grid */
+.chapters-grid { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+.chapter-card {
+  background:rgba(255,255,255,0.04); border:1.5px solid rgba(212,175,55,0.12);
+  border-radius:10px; padding:13px 16px; cursor:pointer;
+  transition:all 0.2s; display:flex; align-items:center; gap:12px;
+}
+.chapter-card:hover,.chapter-card.selected {
+  border-color:#D4AF37; background:rgba(212,175,55,0.1);
+}
+.chapter-num {
+  min-width:30px; height:30px; border-radius:8px;
+  background:rgba(212,175,55,0.15); border:1px solid rgba(212,175,55,0.3);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:#D4AF37;
+}
+.chapter-title { font-size:13px; font-weight:600; color:rgba(255,255,255,0.9); flex:1; }
+.chapter-topics { font-size:11px; color:rgba(255,255,255,0.38); margin-top:2px; }
+
+/* Mode buttons */
 .study-mode-options { margin-bottom:22px; }
 .study-mode-options h3 { font-family:'Playfair Display',serif; font-size:16px; color:#FFD700; margin-bottom:12px; }
 .mode-btns { display:flex; gap:10px; flex-wrap:wrap; }
@@ -3465,9 +3483,7 @@
   cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:7px;
   font-family:'Inter',sans-serif;
 }
-.mode-btn:hover,.mode-btn.selected {
-  border-color:#D4AF37; background:rgba(212,175,55,0.12); color:#FFD700;
-}
+.mode-btn:hover,.mode-btn.selected { border-color:#D4AF37; background:rgba(212,175,55,0.12); color:#FFD700; }
 .btn-start-study {
   padding:13px; background:linear-gradient(135deg,#D4AF37,#FFD700);
   color:#111; border:none; border-radius:10px;
@@ -3476,15 +3492,23 @@
 }
 .btn-start-study:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(212,175,55,0.35); }
 .btn-start-study:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+/* Toolbar */
 .study-toolbar {
   padding:11px 20px; background:rgba(255,255,255,0.03);
   border-bottom:1px solid rgba(212,175,55,0.1);
-  display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap;
+  display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap;
 }
 .study-subject-badge {
   padding:5px 12px; background:rgba(212,175,55,0.15);
   border:1px solid rgba(212,175,55,0.3); border-radius:20px;
   font-size:12px; font-weight:700; color:#D4AF37;
+}
+.study-chapter-badge {
+  padding:5px 12px; background:rgba(180,212,100,0.1);
+  border:1px solid rgba(180,212,100,0.25); border-radius:20px;
+  font-size:12px; font-weight:600; color:#B4D464;
+  max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .study-mode-badge {
   padding:5px 12px; background:rgba(100,180,255,0.1);
@@ -3498,10 +3522,9 @@
   transition:all 0.2s; font-family:'Inter',sans-serif;
 }
 .btn-back-subjects:hover { border-color:#D4AF37; color:#D4AF37; }
-.quick-prompts {
-  display:flex; gap:8px; flex-wrap:wrap;
-  padding:10px 18px 0; flex-shrink:0;
-}
+
+/* Quick prompts */
+.quick-prompts { display:flex; gap:8px; flex-wrap:wrap; padding:10px 18px 0; flex-shrink:0; }
 .quick-btn {
   padding:5px 11px; background:rgba(255,255,255,0.05);
   border:1px solid rgba(255,255,255,0.1); border-radius:16px;
@@ -3509,131 +3532,52 @@
   transition:all 0.2s; white-space:nowrap; font-family:'Inter',sans-serif;
 }
 .quick-btn:hover { border-color:#D4AF37; color:#D4AF37; background:rgba(212,175,55,0.08); }
-.study-chat-area {
-  flex:1; overflow-y:auto; padding:20px 22px;
-  display:flex; flex-direction:column; gap:14px;
-}
-.msg-bubble {
-  max-width:90%; padding:13px 16px; border-radius:14px;
-  font-size:14px; line-height:1.7; animation:fadeInUp 0.25s ease;
-}
-.msg-ai {
-  background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.18);
-  color:rgba(255,255,255,0.9); align-self:flex-start; border-top-left-radius:4px;
-}
-.msg-ai .ai-label {
-  color:#D4AF37; font-size:11px; font-weight:700;
-  display:block; margin-bottom:7px; letter-spacing:0.5px;
-}
-.msg-user {
-  background:rgba(100,180,255,0.1); border:1px solid rgba(100,180,255,0.2);
-  color:rgba(255,255,255,0.85); align-self:flex-end; border-top-right-radius:4px;
-}
-.typing-indicator {
-  display:flex; align-items:center; gap:5px;
-  padding:12px 16px; background:rgba(212,175,55,0.08);
-  border:1px solid rgba(212,175,55,0.18); border-radius:14px;
-  border-top-left-radius:4px; align-self:flex-start; width:68px;
-}
-.typing-dot {
-  width:7px;height:7px; background:#D4AF37;
-  border-radius:50%; animation:typingBounce 1.2s infinite;
-}
+
+/* Chat */
+.study-chat-area { flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:14px; }
+.msg-bubble { max-width:90%; padding:13px 16px; border-radius:14px; font-size:14px; line-height:1.7; animation:fadeInUp 0.25s ease; }
+.msg-ai { background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.18); color:rgba(255,255,255,0.9); align-self:flex-start; border-top-left-radius:4px; }
+.msg-ai .ai-label { color:#D4AF37; font-size:11px; font-weight:700; display:block; margin-bottom:7px; letter-spacing:0.5px; }
+.msg-user { background:rgba(100,180,255,0.1); border:1px solid rgba(100,180,255,0.2); color:rgba(255,255,255,0.85); align-self:flex-end; border-top-right-radius:4px; }
+.typing-indicator { display:flex; align-items:center; gap:5px; padding:12px 16px; background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.18); border-radius:14px; border-top-left-radius:4px; align-self:flex-start; width:68px; }
+.typing-dot { width:7px;height:7px; background:#D4AF37; border-radius:50%; animation:typingBounce 1.2s infinite; }
 .typing-dot:nth-child(2){animation-delay:0.2s;}
 .typing-dot:nth-child(3){animation-delay:0.4s;}
 @keyframes typingBounce{0%,60%,100%{transform:translateY(0);opacity:0.5;}30%{transform:translateY(-6px);opacity:1;}}
+
+/* Quiz */
 .quiz-options { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-.quiz-opt {
-  padding:10px 14px; background:rgba(255,255,255,0.05);
-  border:1.5px solid rgba(255,255,255,0.1); border-radius:8px;
-  color:rgba(255,255,255,0.8); font-size:13px; cursor:pointer;
-  text-align:left; transition:all 0.2s; font-family:'Inter',sans-serif; width:100%;
-}
+.quiz-opt { padding:10px 14px; background:rgba(255,255,255,0.05); border:1.5px solid rgba(255,255,255,0.1); border-radius:8px; color:rgba(255,255,255,0.8); font-size:13px; cursor:pointer; text-align:left; transition:all 0.2s; font-family:'Inter',sans-serif; width:100%; }
 .quiz-opt:not(:disabled):hover { border-color:#D4AF37; background:rgba(212,175,55,0.1); color:white; }
 .quiz-opt.correct { border-color:#4CAF50!important; background:rgba(76,175,80,0.15)!important; color:#81C784!important; }
 .quiz-opt.wrong { border-color:#C41E3A!important; background:rgba(196,30,58,0.15)!important; color:#EF9A9A!important; }
-.study-input-area {
-  padding:14px 18px; background:rgba(0,0,0,0.4);
-  border-top:1px solid rgba(212,175,55,0.12);
-  display:flex; gap:10px; align-items:flex-end; flex-shrink:0;
-}
-.study-input {
-  flex:1; padding:11px 15px; background:rgba(255,255,255,0.06);
-  border:1.5px solid rgba(212,175,55,0.2); border-radius:10px;
-  color:white; font-size:14px; font-family:'Inter',sans-serif;
-  resize:none; outline:none; min-height:44px; max-height:120px;
-  transition:border-color 0.2s;
-}
-.study-input:focus { border-color:#D4AF37; }
-.study-input::placeholder { color:rgba(255,255,255,0.28); }
-.btn-send-study {
-  width:44px;height:44px; background:linear-gradient(135deg,#D4AF37,#FFD700);
-  color:#111; border:none; border-radius:10px;
-  font-size:17px; cursor:pointer; transition:all 0.2s;
-  flex-shrink:0; display:flex; align-items:center; justify-content:center;
-}
-.btn-send-study:hover { transform:scale(1.06); box-shadow:0 4px 14px rgba(212,175,55,0.4); }
-.btn-send-study:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+.quiz-question-text { font-size:15px; font-weight:600; color:#fff; margin:10px 0 14px; line-height:1.5; }
+.quiz-result-bubble { border-color:transparent!important; background:transparent!important; padding:0!important; }
+.quiz-result-header { padding:12px 16px; border-radius:10px; font-weight:700; font-size:14px; margin-bottom:10px; }
+.result-correct { background:rgba(76,175,80,0.15); border:1.5px solid rgba(76,175,80,0.4); color:#81C784; }
+.result-wrong { background:rgba(196,30,58,0.15); border:1.5px solid rgba(196,30,58,0.4); color:#EF9A9A; }
+.quiz-result-explanation { background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.2); border-radius:10px; padding:12px 14px; color:rgba(255,255,255,0.85); font-size:13px; line-height:1.7; margin-bottom:10px; }
+.btn-next-question { padding:9px 20px; background:linear-gradient(135deg,#D4AF37,#FFD700); color:#111; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s; font-family:'Inter',sans-serif; letter-spacing:0.5px; }
+.btn-next-question:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(212,175,55,0.4); }
+.btn-next-question:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
 .msg-ai pre { background:rgba(0,0,0,0.3); padding:10px 12px; border-radius:6px; overflow-x:auto; font-size:12px; margin:8px 0; }
 .msg-ai ul,.msg-ai ol { padding-left:20px; margin:6px 0; }
 .msg-ai li { margin-bottom:4px; }
 .msg-ai strong { color:#FFD700; }
+.topic-card { background:rgba(255,255,255,0.04); border:1.5px solid rgba(212,175,55,0.25); border-radius:12px; overflow:hidden; align-self:flex-start; max-width:90%; animation:fadeInUp 0.25s ease; }
+.topic-card-header { background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.08)); border-bottom:1px solid rgba(212,175,55,0.2); padding:10px 16px; display:flex; align-items:center; gap:8px; }
+.topic-card-header .topic-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#D4AF37; }
+.topic-card-body { padding:14px 16px; font-size:14px; line-height:1.75; color:rgba(255,255,255,0.88); }
 
-/* Quiz question text */
-.quiz-question-text {
-  font-size:15px; font-weight:600; color:#fff;
-  margin:10px 0 14px; line-height:1.5;
-}
+/* Input */
+.study-input-area { padding:14px 18px; background:rgba(0,0,0,0.4); border-top:1px solid rgba(212,175,55,0.12); display:flex; gap:10px; align-items:flex-end; flex-shrink:0; }
+.study-input { flex:1; padding:11px 15px; background:rgba(255,255,255,0.06); border:1.5px solid rgba(212,175,55,0.2); border-radius:10px; color:white; font-size:14px; font-family:'Inter',sans-serif; resize:none; outline:none; min-height:44px; max-height:120px; transition:border-color 0.2s; }
+.study-input:focus { border-color:#D4AF37; }
+.study-input::placeholder { color:rgba(255,255,255,0.28); }
+.btn-send-study { width:44px;height:44px; background:linear-gradient(135deg,#D4AF37,#FFD700); color:#111; border:none; border-radius:10px; font-size:17px; cursor:pointer; transition:all 0.2s; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.btn-send-study:hover { transform:scale(1.06); box-shadow:0 4px 14px rgba(212,175,55,0.4); }
+.btn-send-study:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
 
-/* Quiz result bubble */
-.quiz-result-bubble { border-color:transparent !important; background:transparent !important; padding:0 !important; }
-.quiz-result-header {
-  padding:12px 16px; border-radius:10px; font-weight:700;
-  font-size:14px; margin-bottom:10px;
-}
-.result-correct {
-  background:rgba(76,175,80,0.15); border:1.5px solid rgba(76,175,80,0.4);
-  color:#81C784;
-}
-.result-wrong {
-  background:rgba(196,30,58,0.15); border:1.5px solid rgba(196,30,58,0.4);
-  color:#EF9A9A;
-}
-.quiz-result-explanation {
-  background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.2);
-  border-radius:10px; padding:12px 14px;
-  color:rgba(255,255,255,0.85); font-size:13px; line-height:1.7;
-  margin-bottom:10px;
-}
-.btn-next-question {
-  padding:9px 20px; background:linear-gradient(135deg,#D4AF37,#FFD700);
-  color:#111; border:none; border-radius:8px;
-  font-weight:700; font-size:13px; cursor:pointer;
-  transition:all 0.2s; font-family:'Inter',sans-serif;
-  letter-spacing:0.5px;
-}
-.btn-next-question:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(212,175,55,0.4); }
-.btn-next-question:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
-
-/* Topic card (explain mode search result) */
-.topic-card {
-  background:rgba(255,255,255,0.04); border:1.5px solid rgba(212,175,55,0.25);
-  border-radius:12px; overflow:hidden; align-self:flex-start; max-width:90%;
-  animation:fadeInUp 0.25s ease;
-}
-.topic-card-header {
-  background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.08));
-  border-bottom:1px solid rgba(212,175,55,0.2);
-  padding:10px 16px; display:flex; align-items:center; gap:8px;
-}
-.topic-card-header .topic-label {
-  font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:1px; color:#D4AF37;
-}
-.topic-card-body {
-  padding:14px 16px; font-size:14px; line-height:1.75;
-  color:rgba(255,255,255,0.88);
-}
 @media(max-width:600px){
   .study-header{padding:12px 16px;}
   .study-header h2{font-size:16px;}
@@ -3645,44 +3589,134 @@
 </style>
 
 <script>
-// ── AI STUDY MODE ──────────────────────────────────────────────
+// ══════════════════════════════════════════════
+//  AI STUDY MODE — MoE New Curriculum, Chapter-Based
+// ══════════════════════════════════════════════
+
 const SUBJECTS = [
-  { id:'math',    icon:'📐', name:'Mathematics',       desc:'Algebra, Calculus, Statistics' },
-  { id:'physics', icon:'⚛️',  name:'Physics',           desc:'Mechanics, Waves, Electricity' },
-  { id:'chem',    icon:'🧪', name:'Chemistry',         desc:'Organic, Inorganic, Reactions' },
-  { id:'bio',     icon:'🧬', name:'Biology',           desc:'Cells, Genetics, Evolution' },
-  { id:'history', icon:'🏛️', name:'Ethiopian History', desc:'Ancient, Medieval, Modern' },
-  { id:'english', icon:'📖', name:'English',           desc:'Grammar, Literature, Writing' },
-  { id:'civics',  icon:'⚖️',  name:'Civics & Ethics',  desc:'Government, Rights, Values' },
-  { id:'geo',     icon:'🌍', name:'Geography',         desc:'Physical, Human, Ethiopia' },
-  { id:'econ',    icon:'📊', name:'Economics',         desc:'Micro, Macro, Development' },
-  { id:'ict',     icon:'💻', name:'ICT',               desc:'Computing, Internet, Coding' },
+  { id:'math',    icon:'📐', name:'Mathematics',          grade:'11 & 12', desc:'8 Chapters' },
+  { id:'physics', icon:'⚛️',  name:'Physics',              grade:'11 & 12', desc:'7 Chapters' },
+  { id:'chem',    icon:'🧪', name:'Chemistry',            grade:'11 & 12', desc:'6 Chapters' },
+  { id:'bio',     icon:'🧬', name:'Biology',              grade:'11 & 12', desc:'6 Chapters' },
+  { id:'history', icon:'🏛️', name:'History',              grade:'11 & 12', desc:'9 Chapters' },
+  { id:'geo',     icon:'🌍', name:'Geography',            grade:'11 & 12', desc:'8 Chapters' },
+  { id:'econ',    icon:'📊', name:'Economics',            grade:'11 & 12', desc:'7 Chapters' },
+  { id:'english', icon:'📖', name:'English',              grade:'11 & 12', desc:'10 Units'   },
+  { id:'ict',     icon:'💻', name:'Information Technology', grade:'11 & 12', desc:'6 Chapters' },
 ];
 
-const QUICK_PROMPTS = {
-  math:    ['Explain quadratic equations','What is integration?','Solve a system of equations','Statistics basics'],
-  physics: ['Explain Newton\'s Laws','What is electric current?','How do waves work?','Gravity explained'],
-  chem:    ['What is a chemical bond?','Explain periodic table','Acids and bases','Balancing equations'],
-  bio:     ['How does cell division work?','Explain DNA and RNA','What is natural selection?','Human body systems'],
-  history: ['Ethiopian ancient kingdoms','The Battle of Adwa','Emperor Haile Selassie','Ethiopian Renaissance'],
-  english: ['Parts of speech','How to write an essay','Reading comprehension tips','Common grammar mistakes'],
-  civics:  ['Ethiopian Constitution','Human rights basics','How government works','Citizen responsibilities'],
-  geo:     ['Ethiopian geography overview','Climate zones','Population geography','East African Rift'],
-  econ:    ['Supply and demand','GDP explained','Ethiopia\'s economy','Inflation and unemployment'],
-  ict:     ['What is a computer network?','How the internet works','Basic programming concepts','Cybersecurity basics'],
+// MoE New Curriculum chapters — Grade 11 (primary for ENKC)
+const CHAPTERS = {
+  math: [
+    { num:1, title:'Relations and Functions', topics:'Domain, range, types of functions, composition, inverse' },
+    { num:2, title:'Polynomial and Rational Functions', topics:'Polynomials, zeros, graphs, rational expressions, asymptotes' },
+    { num:3, title:'Exponential and Logarithmic Functions', topics:'Exponential growth/decay, logarithm laws, natural log' },
+    { num:4, title:'Trigonometric Functions', topics:'Unit circle, sine/cosine/tan, identities, graphs, inverse trig' },
+    { num:5, title:'Sequences and Series', topics:'Arithmetic/geometric sequences, sigma notation, convergence' },
+    { num:6, title:'Introduction to Calculus', topics:'Limits, continuity, derivatives, differentiation rules, applications' },
+    { num:7, title:'Statistics and Probability', topics:'Descriptive statistics, probability rules, distributions, sampling' },
+    { num:8, title:'Matrices and Determinants', topics:'Matrix operations, determinants, inverse matrix, systems of equations' },
+  ],
+  physics: [
+    { num:1, title:'Measurement and Units', topics:'SI units, significant figures, dimensional analysis, uncertainty' },
+    { num:2, title:'Vectors and Motion in 2D', topics:'Vector addition, projectile motion, relative velocity' },
+    { num:3, title:'Dynamics and Newton\'s Laws', topics:'Forces, friction, Newton\'s 3 laws, circular motion' },
+    { num:4, title:'Work, Energy and Power', topics:'Work-energy theorem, potential/kinetic energy, conservation laws' },
+    { num:5, title:'Oscillations and Waves', topics:'Simple harmonic motion, waves, sound, resonance, Doppler effect' },
+    { num:6, title:'Electric Fields and Potential', topics:'Coulomb\'s law, electric field, potential, capacitance' },
+    { num:7, title:'Current Electricity', topics:'Ohm\'s law, circuits, resistance, Kirchhoff\'s laws, power' },
+  ],
+  chem: [
+    { num:1, title:'Atomic Structure and Periodic Table', topics:'Quantum model, electron configuration, periodic trends' },
+    { num:2, title:'Chemical Bonding', topics:'Ionic, covalent, metallic bonds, VSEPR, polarity, hybridization' },
+    { num:3, title:'Stoichiometry and Reactions', topics:'Mole concept, balancing equations, limiting reagent, yield' },
+    { num:4, title:'Chemical Kinetics', topics:'Reaction rates, factors affecting rate, rate law, activation energy' },
+    { num:5, title:'Chemical Equilibrium', topics:'Le Chatelier\'s principle, equilibrium constant, acid-base equilibrium' },
+    { num:6, title:'Organic Chemistry', topics:'Hydrocarbons, functional groups, reactions, isomerism, polymers' },
+  ],
+  bio: [
+    { num:1, title:'Cell Biology', topics:'Cell structure, organelles, membrane transport, cell division' },
+    { num:2, title:'Biochemistry and Enzymes', topics:'Macromolecules, enzyme function, metabolism, ATP' },
+    { num:3, title:'Genetics', topics:'Mendelian genetics, DNA structure, replication, transcription, translation' },
+    { num:4, title:'Evolution and Ecology', topics:'Natural selection, adaptation, ecosystems, food webs, conservation' },
+    { num:5, title:'Plant Biology', topics:'Photosynthesis, plant tissues, reproduction, growth hormones' },
+    { num:6, title:'Human Body Systems', topics:'Digestive, respiratory, circulatory, nervous, excretory systems' },
+  ],
+  history: [
+    { num:1, title:'Ancient World Civilizations', topics:'Egypt, Mesopotamia, Greece, Rome, China, Indus Valley' },
+    { num:2, title:'Ancient Ethiopian Civilizations', topics:'D\'mt Kingdom, Aksumite Empire, trade, Christianity, stelae' },
+    { num:3, title:'Medieval Ethiopia', topics:'Zagwe Dynasty, Lalibela churches, Solomonic restoration' },
+    { num:4, title:'Early Modern Ethiopia', topics:'Ahmad Gragn, Gondarine period, Zemene Mesafint' },
+    { num:5, title:'Ethiopia in the 19th Century', topics:'Tewodros II, Yohannes IV, Menelik II, Italian rivalry' },
+    { num:6, title:'Battle of Adwa and After', topics:'1896 victory, causes, significance, aftermath, diplomacy' },
+    { num:7, title:'Haile Selassie Era', topics:'Modernization, 1935 Italian invasion, WWII, OAU founding' },
+    { num:8, title:'The Derg Period', topics:'1974 revolution, Red Terror, Mengistu, socialist policies' },
+    { num:9, title:'Modern Ethiopia', topics:'1991 transition, EPRDF, federalism, current reforms, development' },
+  ],
+  geo: [
+    { num:1, title:'Maps and Map Reading', topics:'Scale, coordinates, contour lines, remote sensing, GIS' },
+    { num:2, title:'Ethiopian Physical Geography', topics:'Ethiopian Highlands, Rift Valley, rivers, lakes, soils' },
+    { num:3, title:'Climate and Weather', topics:'Climate zones, Dega/Woina Dega/Kolla, rainfall patterns, seasons' },
+    { num:4, title:'Ecosystems and Natural Resources', topics:'Vegetation types, biodiversity, water, minerals, forests' },
+    { num:5, title:'Population and Settlement', topics:'Demographics, urbanization, population growth, migration' },
+    { num:6, title:'Agriculture and Economy', topics:'Farming systems, cash crops, industry, trade, GDP' },
+    { num:7, title:'African Geography', topics:'African continent, regions, major features, economies' },
+    { num:8, title:'World Geography', topics:'Continents, oceans, globalization, geopolitics, climate change' },
+  ],
+  econ: [
+    { num:1, title:'Basic Economic Concepts', topics:'Scarcity, opportunity cost, production possibilities, economic systems' },
+    { num:2, title:'Demand and Supply', topics:'Law of demand/supply, elasticity, market equilibrium, shifts' },
+    { num:3, title:'Market Structures', topics:'Perfect competition, monopoly, oligopoly, monopolistic competition' },
+    { num:4, title:'National Income Accounting', topics:'GDP, GNP, economic growth, business cycle, inflation' },
+    { num:5, title:'Money, Banking and Finance', topics:'Money functions, banking system, monetary policy, CBE' },
+    { num:6, title:'Government and Fiscal Policy', topics:'Public expenditure, taxation, budget, fiscal policy tools' },
+    { num:7, title:'Ethiopian Economy and Development', topics:'Agriculture sector, industry, poverty, trade, development goals' },
+  ],
+  english: [
+    { num:1,  title:'Identity and Culture', topics:'Reading, vocabulary, grammar: present tenses, writing a profile' },
+    { num:2,  title:'Education and Learning', topics:'Reading comprehension, academic vocabulary, essay structure' },
+    { num:3,  title:'Health and Science', topics:'Scientific texts, passive voice, technical vocabulary' },
+    { num:4,  title:'Environment and Climate', topics:'Argumentative texts, conditionals, environmental vocabulary' },
+    { num:5,  title:'Technology and Innovation', topics:'Informational texts, relative clauses, technology vocabulary' },
+    { num:6,  title:'Literature: Poetry', topics:'Poetic devices, figurative language, analysis and response' },
+    { num:7,  title:'Literature: Fiction', topics:'Short stories, character, theme, narrative techniques' },
+    { num:8,  title:'Rights and Responsibilities', topics:'Persuasive writing, modal verbs, civic vocabulary' },
+    { num:9,  title:'Global Issues', topics:'Discussion texts, reported speech, global affairs vocabulary' },
+    { num:10, title:'Ethiopian Heritage and Arts', topics:'Cultural texts, review writing, descriptive language' },
+  ],
+  ict: [
+    { num:1, title:'Computer Fundamentals', topics:'Hardware, software, binary, number systems, computer types' },
+    { num:2, title:'Operating Systems', topics:'OS functions, file management, Windows/Linux, system software' },
+    { num:3, title:'Networking and Internet', topics:'Network types, protocols, TCP/IP, internet services, security' },
+    { num:4, title:'Productivity Software', topics:'Word processing, spreadsheets, presentations, databases' },
+    { num:5, title:'Programming Basics', topics:'Algorithms, flowcharts, pseudocode, Python basics, logic' },
+    { num:6, title:'Cybersecurity and Ethics', topics:'Threats, malware, protection, digital citizenship, copyright' },
+  ],
 };
 
-const MODE_LABELS = {
-  explain:'💡 Explain Topics', quiz:'🧩 Quiz Me',
-  practice:'✏️ Practice Problems', summary:'📋 Quick Summary'
+const QUICK_PROMPTS = {
+  math:    ['Explain this chapter', 'Give me a quiz question', 'Solve a sample problem', 'Key formulas'],
+  physics: ['Explain this chapter', 'Give me a quiz question', 'Walk through a calculation', 'Key laws/formulas'],
+  chem:    ['Explain this chapter', 'Give me a quiz question', 'Worked example', 'Key terms to know'],
+  bio:     ['Explain this chapter', 'Give me a quiz question', 'Draw/describe a diagram', 'Key terms to know'],
+  history: ['Explain this chapter', 'Give me a quiz question', 'Timeline of events', 'Why is this important?'],
+  geo:     ['Explain this chapter', 'Give me a quiz question', 'Ethiopian example', 'Key facts to memorize'],
+  econ:    ['Explain this chapter', 'Give me a quiz question', 'Real-world example', 'Ethiopian context'],
+  english: ['Explain this unit', 'Quiz me on grammar', 'Give a writing example', 'Key vocabulary'],
+  ict:     ['Explain this chapter', 'Give me a quiz question', 'Practical example', 'Key terms to know'],
 };
+
+const MODE_LABELS = { explain:'💡 Explain', quiz:'🧩 Quiz Me', summary:'📋 Summary' };
 
 let selectedSubject = null;
+let selectedChapter = null;
 let selectedMode = 'explain';
 let studyMessages = [];
 let studyLoading = false;
+const quizRegistry = {};
+let quizRegId = 0;
 
-// Build subject grid
+// ── Build subject grid on load ────────────────────────────────
 (function buildSubjects(){
   const grid = document.getElementById('subjectsGrid');
   if(!grid) return;
@@ -3690,17 +3724,73 @@ let studyLoading = false;
     const card = document.createElement('div');
     card.className = 'subject-card';
     card.dataset.id = s.id;
-    card.innerHTML = `<div class="subject-icon">${s.icon}</div><div class="subject-name">${s.name}</div><div class="subject-desc">${s.desc}</div>`;
-    card.onclick = () => selectSubject(card, s.id);
+    card.innerHTML = `<div class="subject-icon">${s.icon}</div><div class="subject-name">${s.name}</div><div class="subject-desc">${s.grade} · ${s.desc}</div>`;
+    card.onclick = () => showChapters(s.id);
     grid.appendChild(card);
   });
 })();
 
-function selectSubject(card, id) {
-  document.querySelectorAll('.subject-card').forEach(c => c.classList.remove('selected'));
+// ── Navigation ────────────────────────────────────────────────
+function openStudyMode() {
+  document.getElementById('studyOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeStudyMode() {
+  document.getElementById('studyOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function showChapters(subjectId) {
+  selectedSubject = subjectId;
+  selectedChapter = null;
+  document.getElementById('btnStartStudy').disabled = true;
+
+  // Reset chapter cards selection
+  document.querySelectorAll('.chapter-card').forEach(c => c.classList.remove('selected'));
+
+  const sub = SUBJECTS.find(s => s.id === subjectId);
+  document.getElementById('chapterSubjectBadge').textContent = sub.icon + ' ' + sub.name;
+  document.getElementById('chapterScreenTitle').textContent = `📖 ${sub.name} — Choose a Chapter`;
+  document.getElementById('chapterScreenSub').textContent = `MoE New Curriculum · ${sub.grade} · ${sub.desc}`;
+
+  // Build chapters list
+  const grid = document.getElementById('chaptersGrid');
+  grid.innerHTML = '';
+  const chapters = CHAPTERS[subjectId] || [];
+  chapters.forEach(ch => {
+    const card = document.createElement('div');
+    card.className = 'chapter-card';
+    card.dataset.num = ch.num;
+    card.innerHTML = `<div class="chapter-num">Ch.${ch.num}</div><div><div class="chapter-title">${ch.title}</div><div class="chapter-topics">${ch.topics}</div></div>`;
+    card.onclick = () => selectChapter(card, ch);
+    grid.appendChild(card);
+  });
+
+  // Switch screens
+  document.getElementById('studyPickerScreen').classList.remove('active');
+  document.getElementById('studyChatScreen').classList.remove('active');
+  document.getElementById('studyChapterScreen').classList.add('active');
+}
+
+function selectChapter(card, ch) {
+  document.querySelectorAll('.chapter-card').forEach(c => c.classList.remove('selected'));
   card.classList.add('selected');
-  selectedSubject = id;
+  selectedChapter = ch;
   document.getElementById('btnStartStudy').disabled = false;
+}
+
+function backToSubjects() {
+  selectedSubject = null;
+  selectedChapter = null;
+  document.getElementById('studyChapterScreen').classList.remove('active');
+  document.getElementById('studyChatScreen').classList.remove('active');
+  document.getElementById('studyPickerScreen').classList.add('active');
+}
+
+function backToChapters() {
+  studyMessages = [];
+  document.getElementById('studyChatScreen').classList.remove('active');
+  document.getElementById('studyChapterScreen').classList.add('active');
 }
 
 function selectMode(btn) {
@@ -3709,33 +3799,18 @@ function selectMode(btn) {
   selectedMode = btn.dataset.mode;
 }
 
-function openStudyMode() {
-  document.getElementById('studyOverlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeStudyMode() {
-  document.getElementById('studyOverlay').classList.remove('show');
-  document.body.style.overflow = '';
-}
-
-function backToSubjects() {
-  document.getElementById('studyChatScreen').classList.remove('active');
-  document.getElementById('studyPickerScreen').classList.add('active');
-  studyMessages = [];
-}
-
+// ── Start session ─────────────────────────────────────────────
 function startStudySession() {
-  if (!selectedSubject) return;
+  if (!selectedSubject || !selectedChapter) return;
   const sub = SUBJECTS.find(s => s.id === selectedSubject);
+  const ch  = selectedChapter;
 
-  // Switch screens
-  document.getElementById('studyPickerScreen').classList.remove('active');
+  document.getElementById('studyChapterScreen').classList.remove('active');
   document.getElementById('studyChatScreen').classList.add('active');
 
-  // Update toolbar
   document.getElementById('chatSubjectBadge').textContent = sub.icon + ' ' + sub.name;
-  document.getElementById('chatModeBadge').textContent = MODE_LABELS[selectedMode];
+  document.getElementById('chatChapterBadge').textContent  = `Ch.${ch.num}: ${ch.title}`;
+  document.getElementById('chatModeBadge').textContent     = MODE_LABELS[selectedMode];
 
   // Quick prompts
   const qp = document.getElementById('quickPrompts');
@@ -3748,361 +3823,83 @@ function startStudySession() {
     qp.appendChild(btn);
   });
 
-  // Clear chat and send opening message
   studyMessages = [];
   document.getElementById('studyChatArea').innerHTML = '';
 
-  const openingPrompts = {
-    explain: `You are now helping a Grade 11/12 Ethiopian student study ${sub.name} for the ENKC competition. Start by warmly welcoming them and giving a brief overview of the most important topics in ${sub.name} they should master. Use clear headings, bullet points, and examples. Be encouraging.`,
-    quiz:    `You are an ENKC exam coach for ${sub.name}. Welcome the student and immediately give them a multiple-choice practice question on a key ${sub.name} topic. Format it clearly with options labeled A, B, C, D. After they answer, explain why the answer is correct.`,
-    practice:`You are helping a Grade 11/12 student practice ${sub.name} for the ENKC exam. Welcome them and give them one challenging practice problem with step-by-step guidance. After each problem, ask if they want another.`,
-    summary: `You are an ENKC study assistant. Give the student a comprehensive but concise study summary of the most important ${sub.name} concepts they need to know for the competition. Use clear sections, bold key terms, and include memory tips.`,
+  // Opening system context sent to AI
+  callStudyAI(buildOpeningPrompt(sub, ch, selectedMode), true);
+}
+
+function buildOpeningPrompt(sub, ch, mode) {
+  const modeInstructions = {
+    explain: `Warmly welcome the student and give a thorough, structured explanation of "${ch.title}" from the Ethiopian Grade 11/12 ${sub.name} new curriculum. Cover: what this chapter is about, key concepts/topics (${ch.topics}), important definitions, worked examples, and 2-3 exam tips for ENKC. Use headings, bullet points, and be encouraging.`,
+    quiz:    `Welcome the student warmly, then immediately give them a well-structured multiple-choice quiz question about "${ch.title}" from the Ethiopian Grade 11/12 ${sub.name} new curriculum. The chapter covers: ${ch.topics}. Format: question text, then exactly 4 options labeled A), B), C), D), then on a new line write "ANSWER: X" and "EXPLANATION: ..." so the system can parse it.`,
+    summary: `Give a concise, well-organized summary of "${ch.title}" from the Ethiopian Grade 11/12 ${sub.name} new curriculum. Include: main topics (${ch.topics}), 5-8 key facts/formulas, and the most important things to remember for the ENKC exam. Use bullet points and bold key terms.`,
   };
 
-  callStudyAI(openingPrompts[selectedMode], true);
+  return `You are an expert tutor helping an Ethiopian Grade 11/12 student prepare for the ENKC (Ethiopian National Knowledge Competition) with a 600K ETB prize. The student is studying Chapter ${ch.num}: "${ch.title}" from the ${sub.name} subject (MoE New Curriculum). Topics covered in this chapter: ${ch.topics}. ${modeInstructions[mode] || modeInstructions.explain} Keep responses focused on this specific chapter only. Be warm, clear, and use examples relevant to Ethiopia where possible.`;
 }
 
-function sendStudyMessage() {
-  const input = document.getElementById('studyInput');
-  const text = input.value.trim();
-  if (!text || studyLoading) return;
-  input.value = '';
-  input.style.height = 'auto';
-
-  // Add user bubble
-  appendBubble('user', text);
-
-  const sub = SUBJECTS.find(s => s.id === selectedSubject);
-  const systemContext = `You are an expert ENKC (Ethiopian National Knowledge Competition) study assistant for ${sub.name}. The student is in Grade 11 or 12. Study mode: ${selectedMode}. Be helpful, accurate, encouraging, and concise. Use formatting (bullet points, bold, numbered lists) to make content easy to read. When giving quizzes, format options as A) B) C) D) and wait for the student to answer.`;
-
-  studyMessages.push({ role: 'user', content: text });
-  callStudyAI(null, false, systemContext);
-}
-
-// ── BUILT-IN KNOWLEDGE BANK (No API needed) ──────────────────────────────
-const KNOWLEDGE = {
-  math: {
-    overview: `**Welcome to Mathematics! 🎉**\n\nHere are the most important topics for ENKC Mathematics:\n\n**📐 Algebra**\n- Quadratic equations: ax² + bx + c = 0, solved by factoring or the formula x = (−b ± √(b²−4ac)) / 2a\n- Systems of equations: substitution and elimination methods\n- Polynomials: factoring, degree, roots\n\n**∫ Calculus**\n- Limits: the foundation — what a function approaches as x→a\n- Derivatives: rate of change. Power rule: d/dx(xⁿ) = nxⁿ⁻¹\n- Integration: anti-derivative. ∫xⁿ dx = xⁿ⁺¹/(n+1) + C\n\n**📊 Statistics**\n- Mean = sum of values / number of values\n- Median = middle value when sorted\n- Mode = most frequent value\n- Standard deviation measures spread from the mean\n\n**📐 Geometry**\n- Pythagorean Theorem: a² + b² = c² (right triangles)\n- Circle: Area = πr², Circumference = 2πr\n- Similar triangles: corresponding angles equal, sides proportional\n\nAsk me to explain any topic, give you practice problems, or quiz you! 💪`,
-    summary: `**📋 Mathematics Quick Summary for ENKC**\n\n**ALGEBRA KEY FORMULAS**\n- Quadratic: x = (−b ± √(b²−4ac)) / 2a\n- Difference of squares: a²−b² = (a+b)(a−b)\n- (a+b)² = a²+2ab+b²\n\n**CALCULUS ESSENTIALS**\n- Power rule: d/dx(xⁿ) = nxⁿ⁻¹\n- Chain rule: d/dx[f(g(x))] = f'(g(x))·g'(x)\n- ∫xⁿ dx = xⁿ⁺¹/(n+1) + C\n\n**STATISTICS**\n- Mean: x̄ = Σx/n\n- Variance: σ² = Σ(x−x̄)²/n\n- Probability: P(A) = favorable outcomes / total outcomes\n\n**GEOMETRY**\n- Pythagoras: a²+b²=c²\n- Area of circle: πr²\n- Volume of sphere: (4/3)πr³\n- Volume of cylinder: πr²h`,
-    quiz: [
-      { q: "What is the discriminant of a quadratic equation ax² + bx + c = 0?", opts: ["b² − 4ac", "−b / 2a", "b² + 4ac", "2a − b"], ans: "A", exp: "The discriminant is **b² − 4ac**. If it's positive, two real roots; zero means one repeated root; negative means no real roots." },
-      { q: "What is the derivative of f(x) = x³?", opts: ["3x", "3x²", "x²/3", "3x⁴"], ans: "B", exp: "Using the power rule: d/dx(xⁿ) = nxⁿ⁻¹, so d/dx(x³) = **3x²**." },
-      { q: "If the mean of 5, 10, 15 is x̄, what is x̄?", opts: ["5", "10", "15", "30"], ans: "B", exp: "Mean = (5+10+15)/3 = 30/3 = **10**." },
-      { q: "In a right triangle, if legs are 3 and 4, the hypotenuse is:", opts: ["5", "7", "6", "25"], ans: "A", exp: "By Pythagoras: 3²+4² = 9+16 = 25, so hypotenuse = √25 = **5**." },
-      { q: "What is ∫2x dx?", opts: ["2x²", "x² + C", "x + C", "2 + C"], ans: "B", exp: "∫2x dx = 2·(x²/2) + C = **x² + C**." },
-      { q: "The area of a circle with radius 7 is:", opts: ["14π", "49π", "7π", "21π"], ans: "B", exp: "Area = πr² = π(7²) = **49π**." },
-    ],
-    practice: [
-      "**Practice Problem 1:** Solve x² − 5x + 6 = 0\n\n*Hint: Try factoring. What two numbers multiply to 6 and add to −5?*\n\n**Solution:** Factor as (x−2)(x−3) = 0, so **x = 2 or x = 3** ✅",
-      "**Practice Problem 2:** Find dy/dx if y = 4x³ − 2x² + 7x − 1\n\n*Hint: Apply the power rule to each term.*\n\n**Solution:** dy/dx = **12x² − 4x + 7** ✅",
-      "**Practice Problem 3:** A bag has 4 red and 6 blue balls. What is the probability of picking red?\n\n**Solution:** P(red) = 4/10 = **2/5 = 0.4 = 40%** ✅",
-    ]
-  },
-  physics: {
-    overview: `**Welcome to Physics! ⚛️**\n\nHere are the key topics you need for ENKC Physics:\n\n**🔧 Mechanics**\n- Newton's 1st Law: An object stays at rest or in motion unless a force acts on it\n- Newton's 2nd Law: **F = ma** (Force = mass × acceleration)\n- Newton's 3rd Law: Every action has an equal and opposite reaction\n- Work: W = Fd·cosθ\n- Kinetic Energy: KE = ½mv²\n- Potential Energy: PE = mgh\n\n**〰️ Waves**\n- Wave speed: v = fλ (frequency × wavelength)\n- Sound travels ~343 m/s in air; light travels 3×10⁸ m/s in vacuum\n- Electromagnetic spectrum: radio → microwave → infrared → visible → UV → X-ray → gamma\n\n**⚡ Electricity**\n- Ohm's Law: **V = IR** (Voltage = Current × Resistance)\n- Series circuits: total R = R₁+R₂+R₃\n- Parallel circuits: 1/R = 1/R₁ + 1/R₂\n- Power: P = VI = I²R\n\n**🌡️ Thermodynamics**\n- Heat flows from hot to cold\n- 1st Law: Energy is conserved (ΔU = Q − W)\n- Absolute zero = −273.15°C = 0 K\n\nWhat would you like to explore? 💪`,
-    summary: `**📋 Physics Quick Summary for ENKC**\n\n**MECHANICS**\n- F = ma | W = Fd | KE = ½mv² | PE = mgh\n- v = u + at | s = ut + ½at² | v² = u² + 2as\n- Momentum: p = mv | Impulse = FΔt\n\n**ELECTRICITY**\n- Ohm's Law: V = IR\n- Power: P = VI = I²R = V²/R\n- Series: R_total = R₁+R₂ | Parallel: 1/R = 1/R₁+1/R₂\n\n**WAVES**\n- v = fλ | Speed of light: 3×10⁸ m/s\n- Sound in air: ~343 m/s\n\n**THERMODYNAMICS**\n- Q = mcΔT (heat energy)\n- °C to K: add 273.15\n\n**GRAVITY**\n- g = 9.8 m/s² on Earth\n- F_gravity = GMm/r²`,
-    quiz: [
-      { q: "Newton's 2nd Law states that Force equals:", opts: ["mass × velocity", "mass × acceleration", "mass / acceleration", "weight × height"], ans: "B", exp: "**F = ma** — Force equals mass multiplied by acceleration. This is Newton's Second Law of Motion." },
-      { q: "Ohm's Law is expressed as:", opts: ["V = IR", "I = VR", "R = VI", "P = VI"], ans: "A", exp: "**V = IR** — Voltage equals Current times Resistance. This is Ohm's Law." },
-      { q: "What is the speed of light in a vacuum?", opts: ["3×10⁶ m/s", "3×10⁸ m/s", "3×10¹⁰ m/s", "343 m/s"], ans: "B", exp: "The speed of light in a vacuum is **3×10⁸ m/s** (approximately 300,000 km/s)." },
-      { q: "A 2 kg object moves at 3 m/s. Its kinetic energy is:", opts: ["6 J", "9 J", "3 J", "12 J"], ans: "B", exp: "KE = ½mv² = ½ × 2 × 3² = ½ × 2 × 9 = **9 J**." },
-      { q: "Which electromagnetic wave has the shortest wavelength?", opts: ["Radio waves", "Visible light", "X-rays", "Gamma rays"], ans: "D", exp: "**Gamma rays** have the shortest wavelength (and highest frequency/energy) in the electromagnetic spectrum." },
-    ],
-    practice: [
-      "**Practice Problem 1:** A 5 kg object accelerates at 3 m/s². What force acts on it?\n\n**Solution:** F = ma = 5 × 3 = **15 Newtons** ✅",
-      "**Practice Problem 2:** A resistor has V = 12 V and I = 2 A. Find the resistance.\n\n**Solution:** R = V/I = 12/2 = **6 Ohms (Ω)** ✅",
-      "**Practice Problem 3:** An object falls from height 20 m. What is its speed when it hits the ground? (g = 10 m/s²)\n\n**Solution:** v² = 2gh = 2×10×20 = 400, so v = **20 m/s** ✅",
-    ]
-  },
-  chem: {
-    overview: `**Welcome to Chemistry! 🧪**\n\nKey topics for ENKC Chemistry:\n\n**⚛️ Atomic Structure**\n- Atoms have protons (+) and neutrons in the nucleus, electrons (−) in shells\n- Atomic number = number of protons\n- Mass number = protons + neutrons\n- Isotopes: same protons, different neutrons\n\n**📋 Periodic Table**\n- Groups (columns): same number of valence electrons → similar properties\n- Periods (rows): same number of electron shells\n- Metals (left), Metalloids (staircase), Non-metals (right)\n- Electronegativity increases across a period; decreases down a group\n\n**🔗 Chemical Bonding**\n- Ionic bonds: metal + non-metal (electron transfer)\n- Covalent bonds: non-metal + non-metal (electron sharing)\n- Metallic bonds: metal atoms sharing a sea of electrons\n\n**⚗️ Reactions & Equations**\n- Law of Conservation of Mass: atoms are neither created nor destroyed\n- Balancing: same number of each atom on both sides\n- Acid + Base → Salt + Water (neutralization)\n\n**🧫 Acids & Bases**\n- pH scale: 0−6 = acid, 7 = neutral, 8−14 = base\n- Strong acids: HCl, H₂SO₄, HNO₃\n- Strong bases: NaOH, KOH\n\nAsk me anything! 🔬`,
-    summary: `**📋 Chemistry Quick Summary for ENKC**\n\n**ATOMIC STRUCTURE**\n- Atomic number = protons\n- Mass number = protons + neutrons\n- Electrons fill shells: 2, 8, 8, 18...\n\n**BONDING**\n- Ionic: metal+nonmetal, electron transfer\n- Covalent: nonmetal+nonmetal, electron sharing\n\n**REACTIONS**\n- Synthesis: A + B → AB\n- Decomposition: AB → A + B\n- Single replacement: A + BC → AC + B\n- Double replacement: AB + CD → AD + CB\n\n**ACIDS & BASES**\n- pH < 7 = acid | pH > 7 = base\n- Neutralization: Acid + Base → Salt + H₂O\n\n**MOLES**\n- 1 mole = 6.022×10²³ particles (Avogadro's number)\n- Molar mass = atomic mass in grams/mol`,
-    quiz: [
-      { q: "What does the atomic number of an element represent?", opts: ["Number of neutrons", "Number of protons", "Mass number", "Number of electrons only"], ans: "B", exp: "The **atomic number** equals the number of **protons** in the nucleus. It uniquely identifies each element." },
-      { q: "What type of bond forms between Na and Cl?", opts: ["Covalent bond", "Metallic bond", "Ionic bond", "Hydrogen bond"], ans: "C", exp: "Sodium (Na) is a metal and Chlorine (Cl) is a non-metal — they form an **ionic bond** through electron transfer." },
-      { q: "What is the pH of pure water?", opts: ["0", "14", "7", "5"], ans: "C", exp: "Pure water is neutral with a pH of **7**. Below 7 is acidic, above 7 is basic/alkaline." },
-      { q: "Avogadro's number is approximately:", opts: ["6.022×10²³", "6.022×10²⁵", "3.14×10²³", "9.8×10²³"], ans: "A", exp: "**Avogadro's number = 6.022×10²³**. This is the number of particles in one mole of a substance." },
-      { q: "In neutralization, an acid reacts with a base to form:", opts: ["Only water", "Only salt", "Salt and water", "Acid and oxygen"], ans: "C", exp: "Acid + Base → **Salt + Water**. This is a neutralization reaction." },
-    ],
-    practice: [
-      "**Practice Problem 1:** Balance this equation: H₂ + O₂ → H₂O\n\n**Solution:** **2H₂ + O₂ → 2H₂O** ✅\n(Left: 4H, 2O | Right: 4H, 2O — balanced!)",
-      "**Practice Problem 2:** How many moles are in 44 g of CO₂? (C=12, O=16)\n\n**Solution:** Molar mass of CO₂ = 12 + 32 = 44 g/mol\nMoles = 44g ÷ 44 g/mol = **1 mole** ✅",
-    ]
-  },
-  bio: {
-    overview: `**Welcome to Biology! 🧬**\n\nKey ENKC Biology topics:\n\n**🔬 Cell Biology**\n- Cell theory: all living things are made of cells; cells come from pre-existing cells\n- Prokaryotes (bacteria): no membrane-bound nucleus\n- Eukaryotes (plants, animals, fungi): have a nucleus\n- Organelles: nucleus (DNA), mitochondria (ATP energy), ribosome (protein synthesis), chloroplast (photosynthesis)\n\n**🧬 Genetics**\n- DNA → RNA → Protein (Central Dogma)\n- DNA is a double helix; base pairs: A-T, G-C\n- Dominant alleles mask recessive ones\n- Mendel's Laws: Law of Segregation, Law of Independent Assortment\n\n**🌿 Photosynthesis & Respiration**\n- Photosynthesis: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂\n- Cellular Respiration: C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + ATP\n\n**🦁 Evolution**\n- Natural selection: organisms with favorable traits survive and reproduce more\n- Darwin's theory: variation → selection → adaptation\n- Evidence: fossil record, homologous structures, molecular biology\n\n**🧠 Human Body Systems**\n- Circulatory: heart, blood, vessels — transports O₂ and nutrients\n- Nervous: brain, spinal cord, nerves — control and coordination\n- Digestive: breaks down food into nutrients\n- Respiratory: lungs exchange O₂ and CO₂\n\nWhat would you like to explore? 🔬`,
-    summary: `**📋 Biology Quick Summary for ENKC**\n\n**CELLS**\n- Prokaryote: no nucleus (bacteria)\n- Eukaryote: has nucleus (plants, animals)\n- Key organelles: nucleus, mitochondria, ribosome\n\n**GENETICS**\n- DNA base pairs: A-T, G-C\n- Central Dogma: DNA → RNA → Protein\n- Dominant (D) masks recessive (d)\n\n**PHOTOSYNTHESIS**\n- 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂\n- Occurs in chloroplasts\n\n**RESPIRATION**\n- C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + ATP\n- Occurs in mitochondria\n\n**EVOLUTION**\n- Natural selection: survival of the fittest\n- Mutations are the source of variation`,
-    quiz: [
-      { q: "Which organelle is responsible for producing energy (ATP) in cells?", opts: ["Nucleus", "Ribosome", "Mitochondria", "Chloroplast"], ans: "C", exp: "**Mitochondria** are the powerhouses of the cell, producing ATP through cellular respiration." },
-      { q: "In DNA, adenine (A) pairs with:", opts: ["Guanine (G)", "Cytosine (C)", "Thymine (T)", "Uracil (U)"], ans: "C", exp: "In DNA, **Adenine pairs with Thymine (A-T)** and Guanine pairs with Cytosine (G-C)." },
-      { q: "Photosynthesis occurs in which organelle?", opts: ["Mitochondria", "Chloroplast", "Ribosome", "Nucleus"], ans: "B", exp: "**Chloroplasts** contain chlorophyll and are the site of photosynthesis in plant cells." },
-      { q: "Which is the correct sequence in the Central Dogma?", opts: ["RNA → DNA → Protein", "DNA → RNA → Protein", "Protein → DNA → RNA", "DNA → Protein → RNA"], ans: "B", exp: "The Central Dogma: **DNA → RNA → Protein**. DNA is transcribed into RNA, which is translated into protein." },
-      { q: "Natural selection was proposed by:", opts: ["Gregor Mendel", "Louis Pasteur", "Charles Darwin", "James Watson"], ans: "C", exp: "**Charles Darwin** proposed the theory of natural selection in his book 'On the Origin of Species' (1859)." },
-    ],
-    practice: [
-      "**Practice Problem 1:** A plant cell has no mitochondria. Which process would be most affected?\n\n**Answer:** **Cellular respiration** — mitochondria produce ATP energy. The cell could not efficiently generate energy. ✅",
-      "**Practice Problem 2:** Two parents are Aa × Aa. What fraction of offspring will be homozygous recessive (aa)?\n\n**Solution:** Using a Punnett square: AA, Aa, Aa, aa → **1/4 (25%)** will be aa ✅",
-    ]
-  },
-  history: {
-    overview: `**Welcome to Ethiopian History! 🏛️**\n\nKey topics for ENKC Ethiopian History:\n\n**🏺 Ancient Ethiopia**\n- The Land of Punt: ancient trading partner of Egypt\n- **Kingdom of D'mt** (c. 980–400 BC): early civilization in northern Ethiopia/Eritrea\n- **Aksumite Empire** (c. 100–940 AD): one of the greatest ancient African civilizations\n  - Traded with Rome, Persia, India\n  - Introduced Christianity to Ethiopia (4th century, King Ezana)\n  - Famous for towering stone obelisks (stelae)\n\n**⛪ Medieval Ethiopia**\n- **Zagwe Dynasty** (900–1270): built the famous **rock-hewn churches of Lalibela**\n- **Solomonic Dynasty** restored (1270): claimed descent from King Solomon and Queen of Sheba\n- Ahmad ibn Ibrahim al-Ghazi (Gragn) invasion (1529–1543)\n\n**⚔️ Modern Ethiopia**\n- **Battle of Adwa (1896)**: Ethiopia defeated Italy — the only African country to defeat a European colonial power\n- Emperor Menelik II led the victory at Adwa\n- **Emperor Haile Selassie** (reign 1930–1974): modernized Ethiopia; led during Italian occupation (1935–1941); founding member of OAU\n- **Derg regime** (1974–1991): communist military junta\n- **EPRDF** era and current reforms\n\nWhat would you like to explore in depth? 📚`,
-    summary: `**📋 Ethiopian History Quick Summary**\n\n**ANCIENT**\n- Kingdom of Aksum: 100–940 AD, trade empire, introduced Christianity\n- King Ezana: converted to Christianity (4th century)\n- Famous stelae (obelisks) of Aksum\n\n**MEDIEVAL**\n- Zagwe Dynasty: built Lalibela rock churches\n- Solomonic Dynasty restored 1270\n\n**MODERN**\n- Battle of Adwa 1896: Ethiopia defeats Italy under Menelik II\n- Haile Selassie: emperor 1930–1974, OAU founder\n- Italian occupation: 1935–1941\n- Derg: communist rule 1974–1991\n- EPRDF and reforms from 1991`,
-    quiz: [
-      { q: "The Battle of Adwa (1896) was fought against which European country?", opts: ["Britain", "France", "Italy", "Portugal"], ans: "C", exp: "The Battle of Adwa was fought against **Italy** on March 1, 1896. Emperor Menelik II led Ethiopia to a historic victory, making Ethiopia the only African nation to defeat a European colonial army." },
-      { q: "Which dynasty built the rock-hewn churches of Lalibela?", opts: ["Solomonic Dynasty", "Zagwe Dynasty", "Aksumite Empire", "Derg regime"], ans: "B", exp: "The **Zagwe Dynasty** built the famous rock-hewn churches of Lalibela, which are now a UNESCO World Heritage Site." },
-      { q: "Christianity was introduced to Ethiopia during the reign of which Aksumite king?", opts: ["King Solomon", "King Lalibela", "King Ezana", "King Menelik I"], ans: "C", exp: "**King Ezana** of the Aksumite Empire converted to Christianity in the 4th century AD, making Ethiopia one of the first countries to adopt Christianity as a state religion." },
-      { q: "Emperor Haile Selassie was a founding member of which organization?", opts: ["United Nations", "African Union (OAU)", "Arab League", "Commonwealth of Nations"], ans: "B", exp: "Emperor Haile Selassie was a founding member of the **Organization of African Unity (OAU)**, established in Addis Ababa in 1963 (now the African Union)." },
-      { q: "The Aksumite Empire was known for its famous:", opts: ["Pyramids", "Stone obelisks (stelae)", "Great Wall", "Colosseum"], ans: "B", exp: "Aksum is famous for its towering **stone obelisks (stelae)**, which marked royal graves. Some stand up to 33 meters tall." },
-    ],
-    practice: [
-      "**Practice Question:** Why was the Battle of Adwa historically significant for all of Africa?\n\n**Answer:** The Battle of Adwa (1896) was significant because:\n- Ethiopia became the **only African country to defeat a European colonial power** in battle\n- It proved African nations could resist colonialism\n- It inspired Pan-Africanism and independence movements across Africa\n- Italy was forced to recognize Ethiopian sovereignty ✅",
-    ]
-  },
-  english: {
-    overview: `**Welcome to English! 📖**\n\nKey ENKC English topics:\n\n**📝 Grammar Essentials**\n- **Parts of Speech:** Noun, Pronoun, Verb, Adjective, Adverb, Preposition, Conjunction, Interjection\n- **Tenses:** Simple (I eat), Continuous (I am eating), Perfect (I have eaten), Perfect Continuous (I have been eating)\n- **Active vs Passive:** "She wrote the letter" (active) → "The letter was written by her" (passive)\n- **Subject-Verb Agreement:** Singular subject → singular verb; Plural subject → plural verb\n\n**📚 Vocabulary**\n- Synonyms: words with similar meaning (happy/joyful)\n- Antonyms: opposite meaning (hot/cold)\n- Context clues: use surrounding words to understand new vocabulary\n\n**✍️ Essay Writing**\n- Introduction: Hook → Background → Thesis statement\n- Body paragraphs: Topic sentence → Evidence → Explanation → Transition\n- Conclusion: Restate thesis → Summary → Closing thought\n\n**📖 Reading Comprehension**\n- Main idea: what the passage is mostly about\n- Inference: reading between the lines\n- Author's purpose: to inform, persuade, entertain, or describe\n\nLet's practice! What would you like to work on? 📝`,
-    summary: `**📋 English Quick Summary for ENKC**\n\n**PARTS OF SPEECH**\n- Noun (person/place/thing), Verb (action/state), Adjective (describes noun), Adverb (modifies verb/adjective)\n\n**KEY GRAMMAR RULES**\n- Subject-verb agreement: they go/she goes\n- Pronoun agreement: The student lost his/her book\n- Comma before coordinating conjunctions: FANBOYS (For, And, Nor, But, Or, Yet, So)\n\n**ESSAY STRUCTURE**\n- Intro → Body (3 paragraphs) → Conclusion\n- Each body paragraph: Topic sentence + Evidence + Analysis\n\n**LITERARY DEVICES**\n- Simile: comparing using "like" or "as"\n- Metaphor: direct comparison\n- Personification: giving human qualities to non-human things\n- Alliteration: repeated consonant sounds`,
-    quiz: [
-      { q: "Which sentence is in the passive voice?", opts: ["The dog chased the cat.", "The cat was chased by the dog.", "He is running fast.", "She wrote a letter."], ans: "B", exp: "**'The cat was chased by the dog'** is passive voice. The subject (cat) receives the action rather than doing it." },
-      { q: "What is the plural of 'child'?", opts: ["Childs", "Childes", "Children", "Childrens"], ans: "C", exp: "The plural of 'child' is **'children'** — it's an irregular plural that doesn't follow the standard -s rule." },
-      { q: "Which literary device is used in: 'The wind whispered through the trees'?", opts: ["Simile", "Metaphor", "Personification", "Alliteration"], ans: "C", exp: "**Personification** — the wind is given the human ability to 'whisper'. It's attributing human qualities to non-human things." },
-      { q: "A thesis statement belongs in which part of an essay?", opts: ["Body paragraph", "Conclusion", "Introduction", "Bibliography"], ans: "C", exp: "The **thesis statement** is in the **introduction** — it states the main argument or point of the essay." },
-      { q: "Which word is an antonym of 'benevolent'?", opts: ["Kind", "Generous", "Malevolent", "Gentle"], ans: "C", exp: "**Malevolent** (wishing evil) is the antonym of benevolent (wishing good/kindness)." },
-    ],
-    practice: [
-      "**Practice:** Convert to passive voice: 'The teacher explained the lesson.'\n\n**Answer:** 'The lesson **was explained** by the teacher.' ✅\n\nPattern: Object + was/were + past participle + by + subject",
-      "**Practice:** Identify the error: 'Each of the students have submitted their assignment.'\n\n**Answer:** Should be '...has submitted...' ✅\n'Each' is singular, so it takes a singular verb (has, not have).",
-    ]
-  },
-  civics: {
-    overview: `**Welcome to Civics & Ethics! ⚖️**\n\nKey ENKC Civics topics:\n\n**🏛️ Ethiopian Government**\n- Ethiopia is a **Federal Democratic Republic**\n- Constitution adopted: **December 8, 1994** (effective 1995)\n- Three branches: **Executive** (PM + Cabinet), **Legislative** (Parliament: House of People's Representatives + House of Federation), **Judiciary** (independent courts)\n- Prime Minister is the head of government\n\n**📜 The Ethiopian Constitution**\n- Guarantees fundamental rights: freedom of speech, religion, assembly\n- Recognizes the right of nations and nationalities to self-determination\n- Chapter 3: Fundamental Rights and Freedoms\n\n**🌍 Human Rights**\n- **Universal Declaration of Human Rights (UDHR)** adopted 1948 by the UN\n- Civil rights: right to life, fair trial, privacy\n- Political rights: right to vote, participate in government\n- Economic rights: right to work, education, healthcare\n\n**⚖️ Ethics**\n- Ethical theories: Utilitarianism (greatest good for greatest number), Deontology (duty-based), Virtue Ethics\n- Civic values: justice, equality, responsibility, patriotism, tolerance\n\nAsk me anything! 🗳️`,
-    summary: `**📋 Civics Quick Summary for ENKC**\n\n**ETHIOPIAN GOVERNMENT**\n- Federal Democratic Republic\n- Constitution: 1994/1995\n- PM = Head of Government\n- Parliament: HPR + House of Federation\n\n**HUMAN RIGHTS**\n- UDHR adopted 1948\n- 3 generations: Civil/Political → Economic/Social → Solidarity rights\n\n**DEMOCRATIC PRINCIPLES**\n- Rule of Law, Separation of Powers, Checks and Balances\n- Sovereignty of the people\n\n**CIVIC DUTIES**\n- Voting, paying taxes, obeying laws, serving in military, respecting others' rights`,
-    quiz: [
-      { q: "When was Ethiopia's current constitution adopted?", opts: ["1991", "1994", "2000", "1974"], ans: "B", exp: "Ethiopia's Federal Democratic Republic Constitution was adopted on **December 8, 1994**, and came into effect in 1995." },
-      { q: "The Universal Declaration of Human Rights was adopted in:", opts: ["1945", "1948", "1960", "1963"], ans: "B", exp: "The UDHR was adopted by the UN General Assembly on December 10, **1948**, in Paris." },
-      { q: "Which branch of government makes laws in Ethiopia?", opts: ["Executive", "Judiciary", "Legislature (Parliament)", "Military"], ans: "C", exp: "The **Legislature (Parliament)** makes laws. Ethiopia's Parliament consists of the House of People's Representatives and the House of Federation." },
-      { q: "Who is the head of government in Ethiopia?", opts: ["The President", "The Prime Minister", "The Speaker of Parliament", "The Chief Justice"], ans: "B", exp: "The **Prime Minister** is the head of government in Ethiopia. The President is a largely ceremonial head of state." },
-    ],
-    practice: [
-      "**Practice:** What are the three branches of government and their roles?\n\n**Answer:**\n- **Executive** (PM + Cabinet): implements laws, runs government\n- **Legislative** (Parliament): makes laws\n- **Judiciary** (Courts): interprets laws, ensures justice ✅",
-    ]
-  },
-  geo: {
-    overview: `**Welcome to Geography! 🌍**\n\nKey ENKC Geography topics:\n\n**🗺️ Ethiopian Geography**\n- Ethiopia is in the **Horn of Africa**, East Africa\n- Area: ~1.1 million km² (10th largest in Africa)\n- Capital: **Addis Ababa** (highest capital in Africa, ~2,355m above sea level)\n- Major highlands: Ethiopian Highlands (roof of Africa)\n- **Great Rift Valley** runs through Ethiopia from north to south\n- Major rivers: Blue Nile (Abbay), Awash, Omo\n- Lake Tana: largest lake, source of the Blue Nile\n\n**🌡️ Climate Zones**\n- **Dega**: highland, cool (>2,400m) — most coffee grown here\n- **Woina Dega**: mid-altitude, temperate (1,500–2,400m)\n- **Kolla**: lowland, hot (<1,500m)\n\n**🌏 World Geography**\n- 7 continents: Asia (largest), Africa (2nd), North America, South America, Antarctica, Europe, Australia\n- Largest ocean: Pacific\n- Equator, Tropics of Cancer and Capricorn, Prime Meridian\n\n**👨‍👩‍👧 Population & Human Geography**\n- Ethiopia: ~125 million people (2nd most populous in Africa after Nigeria)\n- Urbanization: majority rural; Addis Ababa is largest city\n\nAsk me anything! 🌐`,
-    summary: `**📋 Geography Quick Summary for ENKC**\n\n**ETHIOPIA**\n- Location: Horn of Africa\n- Capital: Addis Ababa\n- Area: ~1.1 million km²\n- Major feature: Great Rift Valley, Ethiopian Highlands\n- Largest lake: Lake Tana (source of Blue Nile)\n- Climate zones: Dega, Woina Dega, Kolla\n\n**AFRICA**\n- 2nd largest continent\n- 54 countries\n- Sahara = world's largest hot desert\n- Nile = world's longest river\n\n**WORLD**\n- 7 continents, 5 oceans\n- Largest continent: Asia\n- Largest ocean: Pacific`,
-    quiz: [
-      { q: "What is the source of the Blue Nile in Ethiopia?", opts: ["Lake Ziway", "Lake Awash", "Lake Tana", "Lake Turkana"], ans: "C", exp: "**Lake Tana** is the source of the Blue Nile (Abbay River). It is the largest lake in Ethiopia." },
-      { q: "The Great Rift Valley runs through Ethiopia in which direction?", opts: ["East to West", "North to South", "Northeast to Southwest", "Only north"], ans: "B", exp: "The **Great Rift Valley** runs broadly **North to South** (or NE to SW) through Ethiopia, continuing into Kenya and Tanzania." },
-      { q: "What is the highest climate zone in Ethiopia called?", opts: ["Kolla", "Woina Dega", "Dega", "Sahel"], ans: "C", exp: "**Dega** is the highest altitude zone (above ~2,400m), characterized by cool temperatures. This is where most Ethiopian coffee is grown." },
-      { q: "Ethiopia is the __ most populous country in Africa:", opts: ["1st", "2nd", "3rd", "4th"], ans: "B", exp: "Ethiopia is the **2nd most populous country in Africa** (after Nigeria), with a population of over 120 million people." },
-    ],
-    practice: [
-      "**Practice:** Name three major rivers of Ethiopia and their significance.\n\n**Answer:**\n- **Blue Nile (Abbay):** Provides ~85% of Nile's water; flows into Sudan and Egypt\n- **Awash River:** Flows into Afar region; important for irrigation\n- **Omo River:** Flows south into Lake Turkana; rich biodiversity ✅",
-    ]
-  },
-  econ: {
-    overview: `**Welcome to Economics! 📊**\n\nKey ENKC Economics topics:\n\n**📈 Microeconomics**\n- **Supply & Demand:** Price rises when demand increases or supply falls; price falls when demand decreases or supply rises\n- **Elasticity:** How much quantity changes in response to price change\n- **Market structures:** Perfect competition, monopoly, oligopoly, monopolistic competition\n- **Opportunity cost:** The value of the next best alternative given up\n\n**🌍 Macroeconomics**\n- **GDP (Gross Domestic Product):** Total value of goods & services produced in a country in a year\n- **Inflation:** General rise in price levels; measured by CPI (Consumer Price Index)\n- **Unemployment:** Types — frictional, structural, cyclical, seasonal\n- **Fiscal Policy:** Government spending and taxation to influence economy\n- **Monetary Policy:** Central bank controls money supply and interest rates\n\n**🇪🇹 Ethiopian Economy**\n- Agriculture-based economy (~35-40% of GDP)\n- Coffee is the main export crop\n- Major development plans: GTP (Growth and Transformation Plan)\n- Challenges: inflation, poverty, youth unemployment\n\n**💰 Basic Economic Concepts**\n- Scarcity: unlimited wants, limited resources\n- The 3 fundamental questions: What to produce? How to produce? For whom to produce?\n\nAsk me anything! 💹`,
-    summary: `**📋 Economics Quick Summary for ENKC**\n\n**MICRO**\n- Supply ↑ → Price ↓ | Demand ↑ → Price ↑\n- Equilibrium: supply meets demand\n- Opportunity cost: value of next best alternative\n\n**MACRO**\n- GDP: total value of goods/services produced\n- Inflation: rising price levels\n- Types of unemployment: frictional, structural, cyclical\n- Fiscal policy: government tax & spending\n- Monetary policy: central bank, interest rates\n\n**ETHIOPIA**\n- Agriculture-dominated economy\n- Main export: coffee\n- Challenges: inflation, unemployment`,
-    quiz: [
-      { q: "What happens to price when demand increases and supply stays the same?", opts: ["Price falls", "Price stays same", "Price rises", "Supply falls too"], ans: "C", exp: "When demand increases and supply stays the same, **price rises**. More buyers competing for the same goods drives prices up." },
-      { q: "GDP stands for:", opts: ["General Domestic Product", "Gross Domestic Product", "Government Domestic Plan", "Gross Development Plan"], ans: "B", exp: "**GDP = Gross Domestic Product** — the total monetary value of all finished goods and services produced within a country in a specific period." },
-      { q: "What is 'opportunity cost'?", opts: ["The cost of an opportunity you took", "The value of the next best alternative you gave up", "The price of a good in the market", "Government tax on businesses"], ans: "B", exp: "**Opportunity cost** is the value of the next best alternative you give up when making a choice. It's the cost of what you didn't choose." },
-      { q: "Ethiopia's main export crop is:", opts: ["Wheat", "Cotton", "Coffee", "Sugar"], ans: "C", exp: "**Coffee** is Ethiopia's main export crop. Ethiopia is the birthplace of coffee and one of the world's leading coffee producers." },
-    ],
-    practice: [
-      "**Practice:** If the price of bread rises from 5 to 10 Birr and quantity demanded falls from 100 to 80 loaves, is demand elastic or inelastic?\n\n**Solution:** % change in quantity = (80−100)/100 = −20%\n% change in price = (10−5)/5 = 100%\nElasticity = 20%/100% = 0.2 < 1 → **Inelastic demand** ✅\n(Consumers don't reduce bread purchases much even when price doubles — it's a necessity.)",
-    ]
-  },
-  ict: {
-    overview: `**Welcome to ICT! 💻**\n\nKey ENKC ICT topics:\n\n**🖥️ Computer Basics**\n- Hardware: physical components (CPU, RAM, Hard drive, Monitor, Keyboard)\n- Software: programs and operating systems (Windows, Linux, macOS)\n- CPU (Central Processing Unit): the brain of the computer\n- RAM (Random Access Memory): temporary memory while computer is on\n- ROM (Read-Only Memory): permanent memory that doesn't change\n\n**🌐 Networks & Internet**\n- **LAN** (Local Area Network): small area like a school or office\n- **WAN** (Wide Area Network): large area like a country or the internet\n- **IP Address:** unique number identifying each device on a network\n- **HTTP/HTTPS:** protocol for web browsing (S = secure/encrypted)\n- **DNS:** Domain Name System — converts website names to IP addresses\n\n**🔐 Cybersecurity**\n- **Malware:** malicious software (viruses, trojans, ransomware)\n- **Phishing:** tricking people into revealing passwords/information\n- Strong passwords: mix of letters, numbers, symbols, at least 8 characters\n- **Firewall:** protects network from unauthorized access\n\n**💾 Data & Programming**\n- Binary: computers use 0s and 1s (bit = binary digit; byte = 8 bits)\n- Programming languages: Python, Java, C++\n- **Algorithm:** step-by-step instructions to solve a problem\n- Database: organized collection of structured data\n\nAsk me anything! 🖱️`,
-    summary: `**📋 ICT Quick Summary for ENKC**\n\n**HARDWARE**\n- CPU: processes instructions\n- RAM: temporary memory\n- ROM: permanent memory\n- HDD/SSD: storage\n\n**NETWORKS**\n- LAN: local | WAN: wide area\n- IP address: device identifier\n- HTTP/HTTPS: web protocol\n- DNS: domain name to IP\n\n**CYBERSECURITY**\n- Malware, phishing, hacking\n- Firewalls, antivirus, strong passwords\n- Encryption protects data\n\n**DATA**\n- Binary: 0s and 1s\n- 1 byte = 8 bits\n- 1 KB = 1024 bytes\n- Database: structured data storage`,
-    quiz: [
-      { q: "What does CPU stand for?", opts: ["Computer Processing Unit", "Central Processing Unit", "Core Program Utility", "Central Program Unit"], ans: "B", exp: "**CPU = Central Processing Unit** — it is the primary component that executes instructions and processes data in a computer." },
-      { q: "What type of network connects computers within a single building?", opts: ["WAN", "MAN", "LAN", "PAN"], ans: "C", exp: "**LAN (Local Area Network)** connects computers within a small area like a building, school, or office." },
-      { q: "What is 'phishing'?", opts: ["A way to speed up internet", "Tricking people into revealing personal information", "A type of computer virus", "Securing a network"], ans: "B", exp: "**Phishing** is a cyberattack where criminals trick people (via fake emails, websites) into revealing passwords, credit card numbers, or other sensitive information." },
-      { q: "How many bits are in one byte?", opts: ["4", "16", "8", "2"], ans: "C", exp: "**1 byte = 8 bits**. A bit is the smallest unit of data (0 or 1). A byte can represent values from 0 to 255." },
-      { q: "What does HTTPS stand for?", opts: ["Hyper Text Transfer Protocol Secure", "High Transfer Text Protocol System", "Hyper Text Transmission Protocol Server", "Home Text Transfer Protocol System"], ans: "A", exp: "**HTTPS = HyperText Transfer Protocol Secure**. The 'S' means the connection is encrypted using SSL/TLS, protecting your data." },
-    ],
-    practice: [
-      "**Practice:** Convert the binary number 1010 to decimal.\n\n**Solution:**\n1×2³ + 0×2² + 1×2¹ + 0×2⁰\n= 8 + 0 + 2 + 0 = **10 (decimal)** ✅",
-      "**Practice:** A school has 30 computers all connected together. What type of network is this?\n\n**Answer:** This is a **LAN (Local Area Network)** — computers connected in a limited geographic area like a school. ✅",
-    ]
-  }
-};
-
-// ── KEYWORD MATCHING FOR CHAT ──────────────────────────────────
-function findKnowledgeResponse(userText, subjectId) {
-  const text = userText.toLowerCase();
-  const kb = KNOWLEDGE[subjectId];
-  if (!kb) return null;
-
-  // Quiz-related keywords → give a quiz question
-  if (/quiz|question|test me|ask me|examine/i.test(text) && selectedMode !== 'practice') {
-    return null; // handled separately
-  }
-
-  // Practice/problem keywords
-  if (/practice|problem|solve|exercise|homework/i.test(text)) {
-    const probs = kb.practice || [];
-    if (probs.length) {
-      const p = probs[Math.floor(Math.random() * probs.length)];
-      return p + '\n\nWant another practice problem? Just ask!';
-    }
-  }
-
-  // Summary keywords
-  if (/summary|summarize|overview|review|key points|cheat sheet/i.test(text)) {
-    return kb.summary;
-  }
-
-  // Subject-specific keyword matching
-  const responses = getSubjectResponses(subjectId, text);
-  return responses;
-}
-
-function getSubjectResponses(subjectId, text) {
-  // Math-specific
-  if (subjectId === 'math') {
-    if (/quadratic|ax2|ax²|formula/.test(text)) return '**Quadratic Equations** 📐\n\nA quadratic equation has the form **ax² + bx + c = 0**\n\n**The Quadratic Formula:**\nx = (−b ± √(b²−4ac)) / 2a\n\n**Methods to solve:**\n- **Factoring:** Find two numbers that multiply to ac and add to b\n- **Completing the square**\n- **Quadratic formula** (works always)\n\n**The Discriminant (b²−4ac):**\n- Positive → 2 real solutions\n- Zero → 1 repeated solution\n- Negative → no real solutions (complex)\n\nWant a practice problem? 💪';
-    if (/derivative|differentiat|calculus|d\/dx/.test(text)) return '**Derivatives (Calculus)** ∫\n\n**The Power Rule (most important):**\nd/dx(xⁿ) = nxⁿ⁻¹\n\n**Examples:**\n- d/dx(x³) = 3x²\n- d/dx(5x²) = 10x\n- d/dx(7) = 0 (constants → 0)\n\n**Other rules:**\n- Chain rule: d/dx[f(g(x))] = f\'(g(x)) · g\'(x)\n- Product rule: d/dx[fg] = f\'g + fg\'\n- Quotient rule: d/dx[f/g] = (f\'g − fg\')/g²\n\nThe derivative represents the **rate of change** or **slope** of a function at any point. 📈';
-    if (/integrat|antideriv/.test(text)) return '**Integration (Calculus)** ∫\n\n**Basic Integration Rule:**\n∫xⁿ dx = xⁿ⁺¹/(n+1) + C\n\n**Examples:**\n- ∫x² dx = x³/3 + C\n- ∫3x dx = 3x²/2 + C\n- ∫5 dx = 5x + C\n\n**Definite integrals** have limits and give a specific number (area under curve).\n\nIntegration is the **reverse of differentiation** and represents area under a curve. 📊';
-    if (/statistic|mean|median|mode|average/.test(text)) return '**Statistics** 📊\n\n**Measures of Central Tendency:**\n- **Mean** = sum of values ÷ number of values\n- **Median** = middle value (sort first)\n- **Mode** = most frequent value\n\n**Measures of Spread:**\n- **Range** = maximum − minimum\n- **Variance** = average of squared differences from mean\n- **Standard deviation** = √variance\n\n**Probability:**\n- P(event) = favorable outcomes ÷ total outcomes\n- 0 ≤ P ≤ 1\n\n**Example:** Data: 3, 5, 7, 7, 9\n- Mean = 31/5 = 6.2\n- Median = 7\n- Mode = 7';
-    if (/pythagoras|right triangle|hypotenuse/.test(text)) return '**Pythagorean Theorem** 📐\n\nFor a right triangle:\n**a² + b² = c²**\nwhere c is the hypotenuse (longest side)\n\n**Common Pythagorean triples:**\n- 3, 4, 5\n- 5, 12, 13\n- 8, 15, 17\n\n**Example:** If legs are 6 and 8:\nc = √(6²+8²) = √(36+64) = √100 = **10** ✅';
-  }
-
-  // Physics-specific
-  if (subjectId === 'physics') {
-    if (/newton|law of motion|force|mass/.test(text)) return '**Newton\'s Laws of Motion** 🔧\n\n**1st Law (Inertia):**\nAn object at rest stays at rest; an object in motion stays in motion, unless acted on by an external force.\n\n**2nd Law:**\n**F = ma** (Force = mass × acceleration)\n- If F = 20N and m = 4kg, then a = F/m = 5 m/s²\n\n**3rd Law:**\nEvery action has an equal and opposite reaction.\n- Example: A rocket expels gas downward → rocket moves upward\n\n**Units:** Force = Newtons (N), mass = kg, acceleration = m/s²';
-    if (/ohm|voltage|current|resistance|circuit/.test(text)) return '**Electricity & Ohm\'s Law** ⚡\n\n**Ohm\'s Law:** V = IR\n- V = Voltage (Volts)\n- I = Current (Amperes)\n- R = Resistance (Ohms Ω)\n\n**Power:** P = VI = I²R = V²/R\n\n**Series Circuit:**\n- R_total = R₁ + R₂ + R₃\n- Same current through all components\n\n**Parallel Circuit:**\n- 1/R_total = 1/R₁ + 1/R₂\n- Same voltage across all components\n\n**Example:** V = 12V, R = 4Ω → I = V/R = 12/4 = **3A**';
-    if (/wave|frequency|wavelength|sound|light/.test(text)) return '**Waves** 〰️\n\n**Wave equation:** v = fλ\n- v = wave speed (m/s)\n- f = frequency (Hz)\n- λ = wavelength (m)\n\n**Types:**\n- **Transverse:** vibration perpendicular to motion (light, water waves)\n- **Longitudinal:** vibration parallel to motion (sound)\n\n**Speeds:**\n- Sound in air: ~343 m/s\n- Light in vacuum: 3×10⁸ m/s\n\n**Electromagnetic spectrum (low→high frequency):**\nRadio → Microwave → Infrared → Visible → UV → X-ray → Gamma';
-  }
-
-  // Biology-specific
-  if (subjectId === 'bio') {
-    if (/cell|organelle|nucleus|mitochond/.test(text)) return '**Cell Biology** 🔬\n\n**Cell Theory:**\n- All living things are made of cells\n- Cells are the basic unit of life\n- All cells come from pre-existing cells\n\n**Prokaryotic vs Eukaryotic:**\n- **Prokaryotic** (bacteria): No membrane-bound nucleus, simpler\n- **Eukaryotic** (plants, animals, fungi): Has nucleus and organelles\n\n**Key Organelles:**\n- **Nucleus:** Contains DNA, controls cell activities\n- **Mitochondria:** Produces ATP energy ("powerhouse")\n- **Ribosome:** Protein synthesis\n- **Chloroplast:** Photosynthesis (plant cells only)\n- **Cell membrane:** Controls what enters/exits\n- **Endoplasmic reticulum:** Transport network';
-    if (/dna|rna|gene|genetic|inherit|mendel|allele/.test(text)) return '**Genetics** 🧬\n\n**DNA Structure:**\n- Double helix shape\n- Base pairs: **A-T** and **G-C** (in DNA)\n- In RNA: A-U, G-C (Uracil replaces Thymine)\n\n**Central Dogma:**\nDNA → (Transcription) → RNA → (Translation) → Protein\n\n**Mendel\'s Laws:**\n- **Law of Segregation:** Each organism has 2 alleles; they separate during gamete formation\n- **Law of Independent Assortment:** Genes for different traits separate independently\n\n**Dominant vs Recessive:**\n- Dominant allele (D) masks recessive (d)\n- DD or Dd = dominant phenotype; dd = recessive phenotype\n\n**Punnett Square:** Used to predict offspring genotypes';
-    if (/photosynthes|chlorophyll|plant/.test(text)) return '**Photosynthesis** 🌿\n\n**Equation:**\n6CO₂ + 6H₂O + **light energy** → C₆H₁₂O₆ + 6O₂\n\n**Where:** Chloroplasts (contain chlorophyll)\n\n**Two stages:**\n- **Light reactions:** Capture light energy, split water, produce ATP\n- **Calvin cycle (dark reactions):** Use ATP to build glucose from CO₂\n\n**Factors affecting rate:**\n- Light intensity\n- CO₂ concentration\n- Temperature\n- Water availability';
-    if (/evolution|darwin|natural selection/.test(text)) return '**Evolution & Natural Selection** 🦁\n\n**Darwin\'s Theory:**\n- Variation exists within populations\n- Some traits help survival and reproduction\n- Favorable traits are passed to offspring\n- Over time, populations change (evolve)\n\n**Key concepts:**\n- **Adaptation:** Trait that increases survival\n- **Fitness:** Ability to survive and reproduce\n- **Speciation:** New species form when populations become isolated\n\n**Evidence for Evolution:**\n- Fossil record\n- Homologous structures (similar bones in different animals)\n- Vestigial structures\n- DNA similarities between species\n- Direct observation of natural selection';
-  }
-
-  // History-specific  
-  if (subjectId === 'history') {
-    if (/aksum|aksumite|obelisk|stela/.test(text)) return '**The Aksumite Empire** 🏛️\n\nThe Aksumite Empire (c. 100–940 AD) was one of the greatest civilizations of the ancient world.\n\n**Key Facts:**\n- Located in northern Ethiopia (capital: Aksum, in modern Tigray region)\n- Major trading empire connecting Africa, Arabia, India, and Rome\n- **King Ezana** converted to Christianity in the 4th century AD\n- Famous for towering **stone obelisks (stelae)** — the tallest standing one is 24m\n- Had its own script (**Ge\'ez**) and currency\n\n**Decline:** Trade routes shifted; Beja people invaded; Islam spread in surrounding areas\n\n**Legacy:** Aksum is considered the foundation of Ethiopian civilization and national identity.';
-    if (/adwa|1896|menelik|italy|colonial/.test(text)) return '**Battle of Adwa (1896)** ⚔️\n\nThe Battle of Adwa was fought on **March 1, 1896** between Ethiopia and Italy.\n\n**Background:**\n- Italy signed the Treaty of Wuchale (1889) with Ethiopia\n- Italy claimed the treaty gave them a protectorate over Ethiopia\n- Emperor Menelik II rejected this interpretation\n\n**The Battle:**\n- Ethiopian forces led by **Emperor Menelik II** and Empress Taytu\n- Ethiopia had ~100,000 soldiers; Italy ~17,000\n- Ethiopia decisively won\n\n**Significance:**\n- Only African nation to defeat a European colonial power in battle\n- Italy recognized Ethiopian independence in Treaty of Addis Ababa\n- Inspired pan-African movements worldwide\n- Symbol of African resistance and pride';
-    if (/haile selassie|emperor|modern ethiopia/.test(text)) return '**Emperor Haile Selassie** 👑\n\n**Reign:** 1930–1974 (with interruption)\n\n**Key Achievements:**\n- Modernized Ethiopia: built schools, hospitals, railways\n- Led Ethiopia during Italian invasion (1935–1941)\n- Restored to throne after WWII liberation\n- Founding member of **OAU (Organization of African Unity)** 1963, based in Addis Ababa\n- Ethiopia joined the League of Nations and UN under his leadership\n\n**Challenges:**\n- Feudal land system led to inequality\n- 1973 famine exposed government failures\n\n**End of Reign:**\n- Overthrown by the **Derg** military junta on September 12, 1974\n\n**Legacy:** Revered as a symbol of African independence and resistance globally';
-    if (/lalibela|zagwe|rock.*church/.test(text)) return '**The Zagwe Dynasty & Lalibela** ⛪\n\n**Zagwe Dynasty:** Ruled Ethiopia approximately 900–1270 AD, after the decline of Aksum.\n\n**King Lalibela (c. 1181–1221):**\n- Most famous Zagwe king\n- Built 11 **rock-hewn churches** in Roha (now called Lalibela in his honor)\n- Churches were carved directly out of solid rock — some connected by tunnels\n\n**The Churches:**\n- UNESCO World Heritage Site\n- Bet Giyorgis (St. George) is the most famous\n- Still used for worship today, especially during Ethiopian Christmas (Genna)\n\n**Why built?** Lalibela wanted to create a "New Jerusalem" for pilgrims who couldn\'t travel to the Holy Land.';
-  }
-
-  return null; // No specific match
-}
-
-// ── QUIZ SYSTEM ──────────────────────────────────────────────
-let currentQuizIndex = -1;
-
-function getNextQuiz(subjectId) {
-  const kb = KNOWLEDGE[subjectId];
-  if (!kb || !kb.quiz || !kb.quiz.length) return null;
-  currentQuizIndex = (currentQuizIndex + 1) % kb.quiz.length;
-  return kb.quiz[currentQuizIndex];
-}
-
-function formatQuizQuestion(qObj) {
-  let text = `**${qObj.q}**\n\n`;
-  text += `A) ${qObj.opts[0]}\nB) ${qObj.opts[1]}\nC) ${qObj.opts[2]}\nD) ${qObj.opts[3]}`;
-  return text;
-}
-
-// ── MAIN AI HANDLER (no external API) ────────────────────────
-async function callStudyAI(openingPrompt, isOpening, systemContext) {
+// ── AI call (Anthropic API) ───────────────────────────────────
+async function callStudyAI(openingPrompt, isOpening) {
+  if (studyLoading) return;
   studyLoading = true;
   document.getElementById('btnSendStudy').disabled = true;
 
-  const typingId = 'typing-' + Date.now();
-  const typingDiv = document.createElement('div');
-  typingDiv.className = 'typing-indicator';
-  typingDiv.id = typingId;
-  typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
-  document.getElementById('studyChatArea').appendChild(typingDiv);
+  // Show typing indicator
+  const area = document.getElementById('studyChatArea');
+  const typing = document.createElement('div');
+  typing.className = 'typing-indicator';
+  typing.id = 'typingIndicator';
+  typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  area.appendChild(typing);
   scrollStudyChat();
 
   const sub = SUBJECTS.find(s => s.id === selectedSubject);
-  const kb = KNOWLEDGE[selectedSubject];
+  const ch  = selectedChapter;
 
-  // Simulate a short thinking delay for realism
-  await new Promise(r => setTimeout(r, 600 + Math.random() * 500));
-  document.getElementById(typingId)?.remove();
+  const systemPrompt = `You are an expert Ethiopian curriculum tutor helping Grade 11/12 students prepare for the ENKC competition. You are currently teaching Chapter ${ch.num}: "${ch.title}" from ${sub.name} (MoE New Curriculum). Topics: ${ch.topics}. Stay focused on this chapter. Use clear headings, bullet points, and Ethiopian examples. For quiz questions always format as: question, then A) B) C) D) options, then ANSWER: X and EXPLANATION: ... on separate lines.`;
 
-  let responseText = '';
-
+  let messages;
   if (isOpening) {
-    // Opening message based on mode
-    if (selectedMode === 'explain' || selectedMode === 'summary') {
-      responseText = selectedMode === 'summary'
-        ? (kb?.summary || `Welcome to ${sub.name}! Here's a quick summary of key topics you need to know for ENKC.`)
-        : (kb?.overview || `Welcome to ${sub.name}! Let's start studying. Ask me any topic and I'll explain it clearly.`);
-    } else if (selectedMode === 'quiz') {
-      const q = getNextQuiz(selectedSubject);
-      if (q) {
-        appendBubble('ai', `**Welcome to ${sub.name} Quiz Mode! 🧩**\n\nSelect the correct answer from the options below. I'll tell you if you're right and explain why!`);
-        await new Promise(r => setTimeout(r, 200));
-        studyLoading = false;
-        document.getElementById('btnSendStudy').disabled = false;
-        appendQuizBubbleBuiltIn('Question 1', q);
-        scrollStudyChat();
-        return;
-      }
-    } else if (selectedMode === 'practice') {
-      const probs = kb?.practice || [];
-      const p = probs.length ? probs[0] : `Let's practice ${sub.name}! Ask me for a problem on any specific topic.`;
-      responseText = `**Welcome to ${sub.name} Practice Mode! ✏️**\n\nI'll give you practice problems with full solutions. Here's your first one:\n\n` + p + '\n\nType "next problem" for another, or ask about a specific topic!';
-    }
+    messages = [{ role:'user', content: openingPrompt }];
   } else {
-    // User sent a message
-    const userText = studyMessages.length ? studyMessages[studyMessages.length - 1].content : '';
-
-    // In quiz mode, give next quiz question
-    if (selectedMode === 'quiz' || /quiz|question|next question|ask me/i.test(userText)) {
-      const q = getNextQuiz(selectedSubject);
-      if (q) {
-        studyLoading = false;
-        document.getElementById('btnSendStudy').disabled = false;
-        appendQuizBubbleBuiltIn('Next Question', q);
-        scrollStudyChat();
-        return;
-      }
-    }
-
-    // Try keyword matching → show as topic card
-    const matched = findKnowledgeResponse(userText, selectedSubject);
-    if (matched) {
-      // Extract a short title from the first bold line e.g. **Quadratic Equations** → "Quadratic Equations"
-      const titleMatch = matched.match(/\*\*([^*\n]+)\*\*/);
-      const topicTitle = titleMatch ? titleMatch[1].replace(/[📐⚛️🧪🧬🏛️📖⚖️🌍📊💻∫〰️⚡🌡️🔧🔬🌿🦁]/g,'').trim() : 'Topic';
-      studyMessages.push({ role: 'assistant', content: matched });
-      appendTopicCard(topicTitle, matched);
-      studyLoading = false;
-      document.getElementById('btnSendStudy').disabled = false;
-      scrollStudyChat();
-      return;
-    } else if (/next|another|more|continue/i.test(userText) && selectedMode === 'practice') {
-      const probs = kb?.practice || [];
-      const idx = Math.floor(Math.random() * probs.length);
-      responseText = probs[idx] || 'Great work! You\'ve completed all practice problems. Try asking about a specific topic!';
-    } else if (/thank|thanks|great|good|awesome|excellent/i.test(userText)) {
-      responseText = `You're very welcome! 🌟 Keep up the excellent work — ENKC preparation takes dedication, and you're showing it!\n\nWant to:\n- Continue with more **${sub.name}** topics?\n- Try a **quiz question**?\n- Get a **practice problem**?\n\nJust ask! 💪`;
-    } else if (/hello|hi |hey|start|begin/i.test(userText)) {
-      responseText = `Hello! 👋 I'm your ENKC study assistant for **${sub.name}**.\n\n${kb?.overview ? 'Here\'s what we can cover:' : 'Ask me anything about this subject!'}\n\nYou can:\n- Ask me to **explain** any topic\n- Request a **quiz question**\n- Ask for **practice problems**\n- Get a **summary** of key concepts`;
-    } else {
-      // Generic helpful response
-      responseText = `Great question about **${sub.name}**! 📚\n\nHere are some topics I can explain in depth:\n\n`;
-      const quickPrompts = QUICK_PROMPTS[selectedSubject] || [];
-      quickPrompts.forEach(p => { responseText += `- ${p}\n`; });
-      responseText += `\nOr you can:\n- Type "quiz me" for a practice question\n- Type "practice problem" for an exercise\n- Type "summary" for key points\n\nWhat would you like to focus on? 🎯`;
-    }
+    messages = studyMessages.slice(-12); // keep last 12 messages for context
   }
 
-  if (responseText) {
-    studyMessages.push({ role: 'assistant', content: responseText });
-    appendBubble('ai', responseText);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system: systemPrompt,
+        messages: messages,
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b => b.text || '').join('') || 'Sorry, I could not generate a response. Please try again.';
+
+    // Remove typing indicator
+    document.getElementById('typingIndicator')?.remove();
+
+    studyMessages.push({ role:'assistant', content: text });
+
+    // Check if it looks like a quiz question
+    if (selectedMode === 'quiz' || /^[A-D]\)/m.test(text)) {
+      const parsed = parseQuizFromText(text);
+      if (parsed) {
+        appendQuizBubble(parsed);
+      } else {
+        appendBubble('ai', text);
+      }
+    } else {
+      appendBubble('ai', text);
+    }
+  } catch(err) {
+    document.getElementById('typingIndicator')?.remove();
+    appendBubble('ai', '⚠️ Could not connect to AI. Please check your connection and try again.');
   }
 
   studyLoading = false;
@@ -4110,78 +3907,56 @@ async function callStudyAI(openingPrompt, isOpening, systemContext) {
   scrollStudyChat();
 }
 
-// Store quiz data separately to avoid JSON-in-onclick issues
-const quizRegistry = {};
-let quizRegId = 0;
+// ── Parse AI quiz response ────────────────────────────────────
+function parseQuizFromText(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let questionLines = [];
+  let opts = [];
+  let ans = null;
+  let expLines = [];
+  let inExp = false;
 
-function appendQuizBubbleBuiltIn(label, qObj) {
-  const area = document.getElementById('studyChatArea');
-  const div = document.createElement('div');
-  div.className = 'msg-bubble msg-ai';
+  for (const line of lines) {
+    const optMatch = line.match(/^([A-D])\)\s+(.+)/);
+    const ansMatch = line.match(/^ANSWER:\s*([A-D])/i);
+    const expMatch = line.match(/^EXPLANATION:\s*(.+)/i);
 
-  const rid = ++quizRegId;
-  quizRegistry[rid] = qObj;
+    if (ansMatch) { ans = ansMatch[1]; continue; }
+    if (expMatch) { inExp = true; expLines.push(expMatch[1]); continue; }
+    if (inExp) { expLines.push(line); continue; }
+    if (optMatch) { opts.push({ letter: optMatch[1], text: optMatch[2] }); continue; }
+    if (opts.length === 0 && !ansMatch) { questionLines.push(line); }
+  }
 
-  let html = `<span class="ai-label">🧩 ${escHtml(label)}</span>`;
-  html += `<div class="quiz-question-text">${escHtml(qObj.q)}</div>`;
-  html += '<div class="quiz-options">';
-  qObj.opts.forEach((opt, i) => {
-    const letter = ['A','B','C','D'][i];
-    html += `<button class="quiz-opt" data-letter="${letter}" data-rid="${rid}" onclick="handleBuiltInAnswer(this)">${letter}) ${escHtml(opt)}</button>`;
-  });
-  html += '</div>';
-
-  div.innerHTML = html;
-  area.appendChild(div);
-  scrollStudyChat();
+  if (opts.length >= 2) {
+    return {
+      q: questionLines.join(' '),
+      opts: opts.map(o => o.text),
+      ans: ans || 'A',
+      exp: expLines.join(' ') || 'See your textbook for a detailed explanation.',
+    };
+  }
+  return null;
 }
 
-function handleBuiltInAnswer(btn) {
-  const chosen = btn.dataset.letter;
-  const rid = btn.dataset.rid;
-  const qObj = quizRegistry[rid];
-  if (!qObj) return;
+// ── Send user message ─────────────────────────────────────────
+function sendStudyMessage() {
+  const input = document.getElementById('studyInput');
+  const text = input.value.trim();
+  if (!text || studyLoading) return;
 
-  const correct = qObj.ans;
-  const explanation = qObj.exp;
+  appendBubble('user', text);
+  studyMessages.push({ role:'user', content: text });
+  input.value = '';
+  input.style.height = 'auto';
 
-  // Disable all options and mark correct/wrong
-  const parent = btn.closest('.quiz-options');
-  const allBtns = parent.querySelectorAll('.quiz-opt');
-  allBtns.forEach(b => {
-    b.disabled = true;
-    if (b.dataset.letter === correct) b.classList.add('correct');
-  });
-  if (chosen !== correct) btn.classList.add('wrong');
-
-  // Show result bubble
-  const area = document.getElementById('studyChatArea');
-  const resultDiv = document.createElement('div');
-  resultDiv.className = 'msg-bubble msg-ai quiz-result-bubble';
-  const isCorrect = chosen === correct;
-
-  resultDiv.innerHTML =
-    `<div class="quiz-result-header ${isCorrect ? 'result-correct' : 'result-wrong'}">` +
-      (isCorrect ? '✅ Correct! Well done!' : `❌ Wrong — correct answer: <strong>${correct}</strong>`) +
-    `</div>` +
-    `<div class="quiz-result-explanation">${formatStudyText(explanation)}</div>` +
-    `<button class="btn-next-question" onclick="loadNextQuizQuestion(this)">Next Question →</button>`;
-
-  area.appendChild(resultDiv);
-  scrollStudyChat();
+  callStudyAI(null, false);
 }
 
-function loadNextQuizQuestion(btn) {
-  btn.disabled = true;
-  btn.textContent = 'Loading...';
-  const q = getNextQuiz(selectedSubject);
-  if (q) appendQuizBubbleBuiltIn('Next Question', q);
-  scrollStudyChat();
-}
-
+// ── DOM helpers ───────────────────────────────────────────────
 function appendBubble(role, text) {
   const area = document.getElementById('studyChatArea');
-  const div = document.createElement('div');
+  const div  = document.createElement('div');
   div.className = 'msg-bubble msg-' + role;
   if (role === 'ai') {
     div.innerHTML = '<span class="ai-label">🧠 ENKC AI Tutor</span>' + formatStudyText(text);
@@ -4192,89 +3967,62 @@ function appendBubble(role, text) {
   scrollStudyChat();
 }
 
-function appendTopicCard(topicTitle, text) {
+function appendQuizBubble(qObj) {
   const area = document.getElementById('studyChatArea');
-  const div = document.createElement('div');
-  div.className = 'topic-card';
-  div.innerHTML =
-    `<div class="topic-card-header">` +
-      `<span>📖</span><span class="topic-label">${escHtml(topicTitle)}</span>` +
-    `</div>` +
-    `<div class="topic-card-body">${formatStudyText(text)}</div>`;
-  area.appendChild(div);
-  scrollStudyChat();
-}
-
-function appendQuizBubble(text) {
-  const area = document.getElementById('studyChatArea');
-  const div = document.createElement('div');
+  const div  = document.createElement('div');
   div.className = 'msg-bubble msg-ai';
 
-  // Try to parse options
-  const lines = text.split('\n');
-  let questionLines = [];
-  let options = [];
-  let inOptions = false;
-  let correctAnswer = null;
+  const rid = ++quizRegId;
+  quizRegistry[rid] = qObj;
 
-  lines.forEach(line => {
-    const optMatch = line.match(/^([A-D])[)\.]?\s+(.+)/);
-    if (optMatch) {
-      inOptions = true;
-      options.push({ letter: optMatch[1], text: optMatch[2].trim() });
-    } else if (!inOptions) {
-      questionLines.push(line);
-    }
+  let html = `<span class="ai-label">🧩 Quiz Question — Chapter ${selectedChapter?.num}</span>`;
+  html += `<div class="quiz-question-text">${escHtml(qObj.q)}</div>`;
+  html += '<div class="quiz-options">';
+  qObj.opts.forEach((opt, i) => {
+    const letter = ['A','B','C','D'][i];
+    html += `<button class="quiz-opt" data-letter="${letter}" data-rid="${rid}" onclick="handleBuiltInAnswer(this)">${letter}) ${escHtml(opt)}</button>`;
   });
-
-  // Try to find correct answer hint (e.g. "Answer: B" or "Correct answer: C")
-  const ansMatch = text.match(/(?:correct\s+answer|answer)\s*[:\-]\s*([A-D])/i);
-  if (ansMatch) correctAnswer = ansMatch[1].toUpperCase();
-
-  let html = '<span class="ai-label">🧩 Quiz Question</span>';
-  html += formatStudyText(questionLines.join('\n'));
-
-  if (options.length >= 2) {
-    html += '<div class="quiz-options">';
-    options.forEach(opt => {
-      html += `<button class="quiz-opt" data-letter="${opt.letter}" onclick="handleQuizAnswer(this,'${opt.letter}','${correctAnswer || ''}')">${opt.letter}) ${escHtml(opt.text)}</button>`;
-    });
-    html += '</div>';
-  }
-
+  html += '</div>';
   div.innerHTML = html;
   area.appendChild(div);
   scrollStudyChat();
 }
 
-function handleQuizAnswer(btn, chosen, correct) {
-  const parent = btn.closest('.quiz-options');
-  const allBtns = parent.querySelectorAll('.quiz-opt');
-  allBtns.forEach(b => b.disabled = true);
+function handleBuiltInAnswer(btn) {
+  const chosen = btn.dataset.letter;
+  const rid    = btn.dataset.rid;
+  const qObj   = quizRegistry[rid];
+  if (!qObj) return;
 
-  if (!correct) {
-    // No correct answer parsed — just mark chosen and ask AI
-    btn.classList.add('selected');
-    const sub = SUBJECTS.find(s => s.id === selectedSubject);
-    studyMessages.push({ role: 'user', content: `I chose ${chosen}. Is that correct? Please explain the answer.` });
-    appendBubble('user', `I chose option ${chosen}`);
-    callStudyAI(null, false);
-    return;
-  }
+  const correct = qObj.ans;
+  const parent  = btn.closest('.quiz-options');
+  parent.querySelectorAll('.quiz-opt').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.letter === correct) b.classList.add('correct');
+  });
+  if (chosen !== correct) btn.classList.add('wrong');
 
-  if (chosen === correct) {
-    btn.classList.add('correct');
-    appendBubble('ai', `✅ Correct! Well done! You chose **${chosen}**. ${getNextQuizPrompt()}`);
-  } else {
-    btn.classList.add('wrong');
-    allBtns.forEach(b => { if(b.dataset.letter === correct) b.classList.add('correct'); });
-    studyMessages.push({ role: 'user', content: `I answered ${chosen} but the correct answer is ${correct}. Please explain why ${correct} is correct.` });
-    callStudyAI(null, false);
-  }
+  const area = document.getElementById('studyChatArea');
+  const resultDiv = document.createElement('div');
+  resultDiv.className = 'msg-bubble msg-ai quiz-result-bubble';
+  const isCorrect = chosen === correct;
+  resultDiv.innerHTML =
+    `<div class="quiz-result-header ${isCorrect ? 'result-correct' : 'result-wrong'}">`+
+      (isCorrect ? '✅ Correct! Well done!' : `❌ Incorrect — correct answer: <strong>${correct}</strong>`)+
+    `</div>`+
+    `<div class="quiz-result-explanation">${formatStudyText(qObj.exp)}</div>`+
+    `<button class="btn-next-question" onclick="requestNextQuestion(this)">Next Question →</button>`;
+  area.appendChild(resultDiv);
+  scrollStudyChat();
 }
 
-function getNextQuizPrompt() {
-  return ' Type "next question" or ask about anything you want to explore more!';
+function requestNextQuestion(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  const ch = selectedChapter;
+  const sub = SUBJECTS.find(s => s.id === selectedSubject);
+  studyMessages.push({ role:'user', content:`Give me another quiz question about Chapter ${ch.num}: "${ch.title}" — ${sub.name}. Different topic from previous questions.` });
+  callStudyAI(null, false);
 }
 
 function formatStudyText(text) {
@@ -4291,7 +4039,7 @@ function formatStudyText(text) {
 }
 
 function escHtml(t) {
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function scrollStudyChat() {
@@ -4299,12 +4047,10 @@ function scrollStudyChat() {
   if(area) area.scrollTop = area.scrollHeight;
 }
 
-// Close on overlay click
 document.getElementById('studyOverlay').addEventListener('click', function(e) {
   if(e.target === this) closeStudyMode();
 });
 
-// Auto-resize textarea
 document.getElementById('studyInput')?.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
