@@ -2762,14 +2762,14 @@
       let actions = '';
       if (isWaiver) {
         actions = `
-          <button onclick="approveWaiver(${s.id})" style="background:#e8f5ee;color:#2E7D32;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">✅ Grant</button>
-          <button onclick="denyWaiver(${s.id})"  style="background:#fff3e0;color:#E65100;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">⛔ Deny</button>
-          <button onclick="deleteStudent(${s.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;">🗑</button>`;
+          <button onclick="approveWaiver('${s.id}')" style="background:#e8f5ee;color:#2E7D32;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">✅ Grant</button>
+          <button onclick="denyWaiver('${s.id}')"  style="background:#fff3e0;color:#E65100;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">⛔ Deny</button>
+          <button onclick="deleteStudent('${s.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;">🗑</button>`;
       } else {
         actions = `
-          <button onclick="verifyTransaction(${s.id})" style="background:#e8eaf6;color:#3949ab;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;" title="Verify TXN ID then confirm">🔍 Verify & Approve</button>
-          <button onclick="approveStudent(${s.id})" style="background:#e8f5ee;color:#2E7D32;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">✅ Approve</button>
-          <button onclick="rejectStudent(${s.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;">✗ Reject</button>`;
+          <button onclick="verifyTransaction('${s.id}')" style="background:#e8eaf6;color:#3949ab;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;" title="Verify TXN ID then confirm">🔍 Verify & Approve</button>
+          <button onclick="approveStudent('${s.id}')" style="background:#e8f5ee;color:#2E7D32;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">✅ Approve</button>
+          <button onclick="rejectStudent('${s.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;">✗ Reject</button>`;
       }
       row.innerHTML = `
         <td><strong>${s.name}</strong></td>
@@ -2816,7 +2816,7 @@
         <td><code style="font-size:11px;">${s.txnId || '—'}</code></td>
         <td>${s.date}</td>
         <td>
-          <button onclick="deleteStudent(${s.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;" title="Delete record">🗑</button>
+          <button onclick="deleteStudent('${s.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;" title="Delete record">🗑</button>
         </td>`;
       studentsList.appendChild(row);
     });
