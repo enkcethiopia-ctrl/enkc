@@ -3840,7 +3840,7 @@ function buildOpeningPrompt(sub, ch, mode) {
   return `You are an expert tutor helping an Ethiopian Grade 11/12 student prepare for the ENKC (Ethiopian National Knowledge Competition) with a 600K ETB prize. The student is studying Chapter ${ch.num}: "${ch.title}" from the ${sub.name} subject (MoE New Curriculum). Topics covered in this chapter: ${ch.topics}. ${modeInstructions[mode] || modeInstructions.explain} Keep responses focused on this specific chapter only. Be warm, clear, and use examples relevant to Ethiopia where possible.`;
 }
 
-// ── AI call (Anthropic API) ───────────────────────────────────
+// ── AI call (via /api/study → Groq) ───────────────────────────
 async function callStudyAI(openingPrompt, isOpening) {
   if (studyLoading) return;
   studyLoading = true;
@@ -3868,18 +3868,16 @@ async function callStudyAI(openingPrompt, isOpening) {
   }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/study', {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:1000,
         system: systemPrompt,
         messages: messages,
       })
     });
     const data = await res.json();
-    const text = data.content?.map(b => b.text || '').join('') || 'Sorry, I could not generate a response. Please try again.';
+    const text = data.text || 'Sorry, I could not generate a response. Please try again.';
 
     // Remove typing indicator
     document.getElementById('typingIndicator')?.remove();
