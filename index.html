@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<!-- firebase-storage removed: grade proofs stored as Base64 in Firestore -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
   :root {
@@ -2762,14 +2762,14 @@
       let actions = '';
       if (isWaiver) {
         actions = `
-          <button onclick="approveWaiver('${s.id}')" style="background:#e8f5ee;color:#2E7D32;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">✅ Grant</button>
-          <button onclick="denyWaiver('${s.id}')"  style="background:#fff3e0;color:#E65100;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">⛔ Deny</button>
-          <button onclick="deleteStudent('${s.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;">🗑</button>`;
+          <button onclick="approveWaiver(${s.id})" style="background:#e8f5ee;color:#2E7D32;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">✅ Grant</button>
+          <button onclick="denyWaiver(${s.id})"  style="background:#fff3e0;color:#E65100;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">⛔ Deny</button>
+          <button onclick="deleteStudent(${s.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;">🗑</button>`;
       } else {
         actions = `
-          <button onclick="verifyTransaction('${s.id}')" style="background:#e8eaf6;color:#3949ab;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;" title="Verify TXN ID then confirm">🔍 Verify & Approve</button>
-          <button onclick="approveStudent('${s.id}')" style="background:#e8f5ee;color:#2E7D32;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">✅ Approve</button>
-          <button onclick="rejectStudent('${s.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;">✗ Reject</button>`;
+          <button onclick="verifyTransaction(${s.id})" style="background:#e8eaf6;color:#3949ab;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;" title="Verify TXN ID then confirm">🔍 Verify & Approve</button>
+          <button onclick="approveStudent(${s.id})" style="background:#e8f5ee;color:#2E7D32;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">✅ Approve</button>
+          <button onclick="rejectStudent(${s.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:700;">✗ Reject</button>`;
       }
       row.innerHTML = `
         <td><strong>${s.name}</strong></td>
@@ -2816,7 +2816,7 @@
         <td><code style="font-size:11px;">${s.txnId || '—'}</code></td>
         <td>${s.date}</td>
         <td>
-          <button onclick="deleteStudent('${s.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;" title="Delete record">🗑</button>
+          <button onclick="deleteStudent(${s.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;" title="Delete record">🗑</button>
         </td>`;
       studentsList.appendChild(row);
     });
@@ -3008,13 +3008,13 @@
       return;
     }
 
-    const MAX_SIZE = 1 * 1024 * 1024; // 1MB — stored as Base64 in Firestore
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
     if (!proofFile.type.startsWith('image/')) {
       alert('Grade proof must be an image file (JPG, PNG, etc).');
       return;
     }
     if (proofFile.size > MAX_SIZE) {
-      alert('Image is too large. Please upload a photo under 1MB.');
+      alert('Image is too large. Please upload a photo under 5MB.');
       return;
     }
 
@@ -3027,16 +3027,15 @@
     const today = new Date().toISOString().slice(0,10);
 
     const btn = document.querySelector('.btn-register');
-    if (btn) { btn.disabled = true; btn.textContent = 'Processing photo…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Uploading photo…'; }
 
     try {
-      // 1. Convert grade-proof photo to Base64 (no Firebase Storage needed)
-      const gradeProofURL = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Failed to read image file.'));
-        reader.readAsDataURL(proofFile);
-      });
+      // 1. Upload the grade-proof photo to Firebase Storage
+      const ext = (proofFile.name.split('.').pop() || 'jpg').toLowerCase();
+      const storagePath = `gradeProofs/${ref}_${Date.now()}.${ext}`;
+      const fileRef = storage.ref(storagePath);
+      await fileRef.put(proofFile);
+      const gradeProofURL = await fileRef.getDownloadURL();
 
       if (btn) btn.textContent = 'Submitting…';
 
@@ -3055,10 +3054,10 @@
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      // 3. Bump the public-facing counter (doesn't expose any student data)
-      db.collection('stats').doc('public').update({
+      // 3. Bump the public-facing counter (auto-creates doc if missing)
+      db.collection('stats').doc('public').set({
         studentCount: firebase.firestore.FieldValue.increment(1)
-      }).catch(err => console.error('Counter update failed:', err));
+      }, { merge: true }).catch(err => console.error('Counter update failed:', err));
 
       document.getElementById('modalRef').textContent = 'Reference: ' + ref;
       document.getElementById('modal').classList.add('show');
