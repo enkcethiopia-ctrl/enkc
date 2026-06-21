@@ -1,7 +1,4 @@
 // ── FIREBASE CONFIG ──────────────────────────────────────────
-// These values are safe to expose publicly — Firestore security
-// is enforced by Firestore Rules, not by hiding this config.
-
 const firebaseConfig = {
   apiKey: "AIzaSyBT5AbmT8K6VP7uPBxpNMtXohcOBmreOQU",
   authDomain: "enkc-2026.firebaseapp.com",
@@ -14,4 +11,4 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-// storage removed — grade proof photos are stored as Base64 in Firestore
+// storage removed — photos stored as Base64 in Firestore

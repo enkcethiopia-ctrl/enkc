@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<!-- firebase-storage removed: grade proofs stored as Base64 in Firestore -->
 <script src="firebase-config.js"></script>
 <style>
   :root {
@@ -2627,6 +2627,7 @@
       s.status = 'Confirmed';
       s.approvedAt = new Date().toLocaleString();
       showToast(`✅ ${s.name} — registration confirmed.`, 'green');
+      db.collection('stats').doc('public').set({ studentCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(e => console.error('Counter error:', e));
       populateStudentData();
       renderPendingApprovals();
     } catch (err) {
@@ -2663,6 +2664,7 @@
       s.status = 'Waiver-Approved';
       s.approvedAt = new Date().toLocaleString();
       showToast(`✅ Waiver approved for ${s.name}.`, 'green');
+      db.collection('stats').doc('public').set({ studentCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(e => console.error('Counter error:', e));
       populateStudentData();
       renderPendingApprovals();
     } catch (err) {
@@ -2700,6 +2702,7 @@
       s.status = 'Confirmed';
       s.approvedAt = new Date().toLocaleString();
       showToast(`✅ Transaction verified. ${s.name} confirmed.`, 'green');
+      db.collection('stats').doc('public').set({ studentCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(e => console.error('Counter error:', e));
       populateStudentData();
       renderPendingApprovals();
     } catch (err) {
@@ -3008,13 +3011,13 @@
       return;
     }
 
-    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_SIZE = 1 * 1024 * 1024; // 1MB — stored as Base64 in Firestore
     if (!proofFile.type.startsWith('image/')) {
       alert('Grade proof must be an image file (JPG, PNG, etc).');
       return;
     }
     if (proofFile.size > MAX_SIZE) {
-      alert('Image is too large. Please upload a photo under 5MB.');
+      alert('Image is too large. Please upload a photo under 1MB.');
       return;
     }
 
@@ -3027,15 +3030,16 @@
     const today = new Date().toISOString().slice(0,10);
 
     const btn = document.querySelector('.btn-register');
-    if (btn) { btn.disabled = true; btn.textContent = 'Uploading photo…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Processing photo…'; }
 
     try {
-      // 1. Upload the grade-proof photo to Firebase Storage
-      const ext = (proofFile.name.split('.').pop() || 'jpg').toLowerCase();
-      const storagePath = `gradeProofs/${ref}_${Date.now()}.${ext}`;
-      const fileRef = storage.ref(storagePath);
-      await fileRef.put(proofFile);
-      const gradeProofURL = await fileRef.getDownloadURL();
+      // 1. Convert photo to Base64 — no Firebase Storage needed
+      const gradeProofURL = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read image file.'));
+        reader.readAsDataURL(proofFile);
+      });
 
       if (btn) btn.textContent = 'Submitting…';
 
@@ -3054,10 +3058,6 @@
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      // 3. Bump the public-facing counter (auto-creates doc if missing)
-      db.collection('stats').doc('public').set({
-        studentCount: firebase.firestore.FieldValue.increment(1)
-      }, { merge: true }).catch(err => console.error('Counter update failed:', err));
 
       document.getElementById('modalRef').textContent = 'Reference: ' + ref;
       document.getElementById('modal').classList.add('show');
