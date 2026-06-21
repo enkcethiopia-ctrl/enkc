@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
   :root {
@@ -2003,7 +2004,7 @@
           <table>
             <thead>
               <tr>
-                <th>Name</th><th>Grade</th><th>Stream</th><th>School</th><th>Phone</th><th>Transaction ID</th><th>Status</th><th>Actions</th>
+                <th>Name</th><th>Grade</th><th>Stream</th><th>School</th><th>Phone</th><th>Transaction ID</th><th>ID Proof</th><th>Status</th><th>Actions</th>
               </tr>
             </thead>
             <tbody id="pendingApprovalsList"></tbody>
@@ -2286,6 +2287,12 @@
           </div>
 
           <div class="form-group">
+            <label data-en="School ID / Report Card Photo" data-am="የተማሪ መታወቂያ / የውጤት ካርድ ፎቶ" data-or="Suuraa ID Barataa / Ragaa Qabxii">School ID / Report Card Photo</label>
+            <input type="file" id="gradeProof" accept="image/*" required>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:6px;" data-en="Upload a clear photo showing your name and grade (11 or 12), for admin verification." data-am="ስምዎንና ክፍልዎን (11 ወይም 12) በግልጽ የሚያሳይ ፎቶ ይስቀሉ፣ ለአስተዳዳሪ ማረጋገጫ።" data-or="Suuraa maqaa fi kutaa kee (11 ykn 12) ifatti argisiisu fe'i, mirkanaa'uu bulchiinsaaf.">Upload a clear photo showing your name and grade, for admin verification.</p>
+          </div>
+
+          <div class="form-group">
             <label data-en="Phone Number" data-am="ስልክ ቁጥር" data-or="Lakkoofsa Bilbilaa">Phone Number</label>
             <input type="tel" id="phone" placeholder="+251 9XX XXX XXX" required>
           </div>
@@ -2522,11 +2529,12 @@
 
 <script>
   // ── LIVE STUDENT COUNT ON HOMEPAGE ────────────────────────
-  // Listens to Firestore in real-time and updates the hero stat
+  // Reads a small public counter doc (stats/public) instead of the full
+  // registrations collection, so registrations data can stay admin-only.
   (function() {
     try {
-      db.collection('registrations').onSnapshot(snap => {
-        const count = snap.size;
+      db.collection('stats').doc('public').onSnapshot(doc => {
+        const count = doc.exists ? (doc.data().studentCount || 0) : 0;
         const el = document.getElementById('statStudents');
         if (el) {
           el.textContent = count.toLocaleString();
@@ -2743,7 +2751,7 @@
     const pending = studentData.filter(s => ['Pending','Awaiting Review','Waiver-Pending','Waiver-Denied'].includes(s.status));
     document.getElementById('pendingBadge').textContent = pending.length;
     if (pending.length === 0) {
-      el.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#888;padding:24px;">🎉 No pending approvals — all registrations are reviewed.</td></tr>';
+      el.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#888;padding:24px;">🎉 No pending approvals — all registrations are reviewed.</td></tr>';
       return;
     }
     el.innerHTML = '';
@@ -2770,6 +2778,7 @@
         <td>${s.school}</td>
         <td>${s.phone}</td>
         <td><code style="font-size:11px;">${s.txnId || '—'}</code></td>
+        <td>${s.gradeProofURL ? `<a href="${s.gradeProofURL}" target="_blank" rel="noopener" style="display:inline-block;"><img src="${s.gradeProofURL}" alt="ID proof" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #ddd;" title="Click to view full size"></a>` : '<span style="color:#bbb;font-size:11px;">No photo</span>'}</td>
         <td><span class="status-badge ${s.status==='Waiver-Denied'?'status-pending':'status-pending'}">${s.status}</span></td>
         <td style="white-space:nowrap;">${actions}</td>`;
       el.appendChild(row);
@@ -2987,9 +2996,25 @@
     const phone     = document.getElementById('phone').value.trim();
     const lowIncome = document.getElementById('lowIncome').checked;
     const txnId     = document.getElementById('txnId') ? document.getElementById('txnId').value.trim() : '';
+    const proofFile = document.getElementById('gradeProof').files[0];
 
     if (!name || !grade || !stream || !schoolName || !phone) {
       alert('Please fill in all required fields.');
+      return;
+    }
+
+    if (!proofFile) {
+      alert('Please upload a photo of your school ID or report card.');
+      return;
+    }
+
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    if (!proofFile.type.startsWith('image/')) {
+      alert('Grade proof must be an image file (JPG, PNG, etc).');
+      return;
+    }
+    if (proofFile.size > MAX_SIZE) {
+      alert('Image is too large. Please upload a photo under 5MB.');
       return;
     }
 
@@ -3002,21 +3027,37 @@
     const today = new Date().toISOString().slice(0,10);
 
     const btn = document.querySelector('.btn-register');
-    if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Uploading photo…'; }
 
     try {
+      // 1. Upload the grade-proof photo to Firebase Storage
+      const ext = (proofFile.name.split('.').pop() || 'jpg').toLowerCase();
+      const storagePath = `gradeProofs/${ref}_${Date.now()}.${ext}`;
+      const fileRef = storage.ref(storagePath);
+      await fileRef.put(proofFile);
+      const gradeProofURL = await fileRef.getDownloadURL();
+
+      if (btn) btn.textContent = 'Submitting…';
+
+      // 2. Save the registration record with a link to that photo
       await db.collection('registrations').add({
         name,
         grade,
         stream,
         school: schoolName,
         phone,
+        gradeProofURL,
         status: lowIncome ? 'Waiver-Pending' : 'Awaiting Review',
         txnId: lowIncome ? '' : txnId,
         date: today,
         ref,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+
+      // 3. Bump the public-facing counter (doesn't expose any student data)
+      db.collection('stats').doc('public').update({
+        studentCount: firebase.firestore.FieldValue.increment(1)
+      }).catch(err => console.error('Counter update failed:', err));
 
       document.getElementById('modalRef').textContent = 'Reference: ' + ref;
       document.getElementById('modal').classList.add('show');
@@ -3204,11 +3245,8 @@
     });
   });
 
-  // Show admin button on startup
-  window.addEventListener('load', () => {
-    const btn = document.getElementById('adminBtn');
-    if (btn) btn.style.display = 'flex';
-  });
+  // Admin button stays hidden from regular visitors.
+  // Access is only via the Ctrl+Shift+A keyboard shortcut below.
 
   // Keyboard shortcut for admin (Ctrl+Shift+A)
   document.addEventListener('keydown', (e) => {
